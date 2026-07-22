@@ -1,6 +1,6 @@
 {
   "name": "ChainQuest Blockchain Learning Game",
   "description": "An interactive, gamified learning game teaching blockchain fundamentals, wallets, mining, smart contracts, and DeFi with a real-time blockchain simulation sandbox and a Gemini AI mentor.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

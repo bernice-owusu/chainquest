@@ -1,5 +1,18 @@
 import React, { useState, useRef, useEffect } from "react";
-import { MessageSquare, Send, Sparkles, X, ChevronRight, BookOpen, AlertCircle, Volume2, VolumeX } from "lucide-react";
+import {
+  MessageSquare,
+  Send,
+  Sparkles,
+  X,
+  ChevronRight,
+  BookOpen,
+  AlertCircle,
+  Volume2,
+  VolumeX,
+  Mic,
+  MicOff,
+  Radio,
+} from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface Message {
@@ -17,12 +30,19 @@ interface AIAdvisorProps {
   onProgressMission?: (type: "ai_ask") => void;
 }
 
-export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onProgressMission }: AIAdvisorProps) {
+export default function AIAdvisor({
+  currentZone,
+  userXP,
+  userLevel,
+  onClose,
+  onProgressMission,
+}: AIAdvisorProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       role: "assistant",
-      content: "👋 Welcome to ChainQuest! I'm **Satoshi AI**, your blockchain navigator. Whether you're stuck on wallet cryptography, smart contract mechanics, or mining hashes, ask me anything! How can I help you on your Web3 journey today?",
+      content:
+        "👋 Welcome to ChainQuest! I'm **Satoshi AI**, your blockchain navigator. Whether you're stuck on wallet cryptography, smart contract mechanics, or mining hashes, ask me anything or tap the microphone to speak! How can I help you on your Web3 journey today?",
       timestamp: new Date(),
     },
   ]);
@@ -31,7 +51,7 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Web Speech API states and refs
+  // Web Speech API - Voice Output (TTS)
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(() => {
     try {
       return localStorage.getItem("satoshi_voice_enabled") === "true";
@@ -39,11 +59,91 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
       return false;
     }
   });
-  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(
+    null,
+  );
   const synthRef = useRef<SpeechSynthesis | null>(
-    typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis : null
+    typeof window !== "undefined" && "speechSynthesis" in window
+      ? window.speechSynthesis
+      : null,
   );
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  // Web Speech API - Voice Input (STT)
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(true);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setError(null);
+      };
+
+      recognition.onresult = (event: any) => {
+        let currentTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          currentTranscript += event.results[i][0].transcript;
+        }
+        if (currentTranscript) {
+          setInput(currentTranscript);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn("Speech recognition error:", event.error);
+        setIsListening(false);
+        if (event.error !== "no-speech") {
+          setError(`Voice input error: ${event.error}`);
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    } else {
+      setSpeechSupported(false);
+    }
+  }, []);
+
+  const toggleListening = () => {
+    stopSpeaking();
+
+    if (!recognitionRef.current) {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition ||
+        (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        setError(
+          "Voice input (Speech Recognition) is not supported in this browser. Please type your query.",
+        );
+        return;
+      }
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current?.start();
+      } catch (e) {
+        console.error("Error starting speech recognition:", e);
+        setIsListening(false);
+      }
+    }
+  };
 
   const cleanTextForSpeech = (text: string): string => {
     return text
@@ -51,7 +151,10 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
       .replace(/`(.*?)`/g, "$1") // clean inline code blocks
       .replace(/- /g, "") // remove list dashes
       .replace(/👋/g, "Hello") // clean wave emoji
-      .replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, '') // remove other emojis
+      .replace(
+        /[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g,
+        "",
+      ) // remove other emojis
       .trim();
   };
 
@@ -77,9 +180,15 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
 
     // Get English voices
     const voices = synthRef.current.getVoices();
-    const preferredVoice = 
-      voices.find((v) => v.lang.startsWith("en-") && v.name.toLowerCase().includes("natural")) ||
-      voices.find((v) => v.lang.startsWith("en-") && v.name.toLowerCase().includes("google")) ||
+    const preferredVoice =
+      voices.find(
+        (v) =>
+          v.lang.startsWith("en-") && v.name.toLowerCase().includes("natural"),
+      ) ||
+      voices.find(
+        (v) =>
+          v.lang.startsWith("en-") && v.name.toLowerCase().includes("google"),
+      ) ||
       voices.find((v) => v.lang.startsWith("en-")) ||
       voices[0];
 
@@ -114,10 +223,13 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
         }
       };
       synthRef.current.addEventListener("voiceschanged", handleVoicesChanged);
-      
+
       return () => {
         if (synthRef.current) {
-          synthRef.current.removeEventListener("voiceschanged", handleVoicesChanged);
+          synthRef.current.removeEventListener(
+            "voiceschanged",
+            handleVoicesChanged,
+          );
           synthRef.current.cancel();
         }
       };
@@ -155,7 +267,7 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
 
   const handleSend = async (text: string) => {
     if (!text.trim()) return;
-    
+
     setError(null);
     const userMsg: Message = {
       id: Math.random().toString(),
@@ -163,7 +275,7 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
       content: text,
       timestamp: new Date(),
     };
-    
+
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
@@ -194,21 +306,27 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
         try {
           const errData = await res.json();
           if (errData && errData.error) {
-            serverErrorMsg = typeof errData.error === "string" ? errData.error : JSON.stringify(errData.error);
+            serverErrorMsg =
+              typeof errData.error === "string"
+                ? errData.error
+                : JSON.stringify(errData.error);
           }
         } catch (e) {}
-        throw new Error(serverErrorMsg || "Failed to reach Satoshi AI. Make sure GEMINI_API_KEY is configured.");
+        throw new Error(
+          serverErrorMsg ||
+            "Failed to reach Satoshi AI. Make sure GEMINI_API_KEY is configured.",
+        );
       }
 
       const data = await res.json();
-      
+
       const assistantMsg: Message = {
         id: Math.random().toString(),
         role: "assistant",
         content: data.response,
         timestamp: new Date(),
       };
-      
+
       setMessages((prev) => [...prev, assistantMsg]);
 
       // Auto-narrate if global voice toggle is active
@@ -219,14 +337,19 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "An error occurred while communicating with Satoshi AI.");
+      setError(
+        err.message || "An error occurred while communicating with Satoshi AI.",
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 border-l border-slate-800 text-slate-100" id="ai-advisor-panel">
+    <div
+      className="flex flex-col h-full bg-slate-900 border-l border-slate-800 text-slate-100"
+      id="ai-advisor-panel"
+    >
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-slate-950 border-b border-slate-800">
         <div className="flex items-center gap-3">
@@ -235,7 +358,10 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
           </div>
           <div>
             <h3 className="font-bold text-slate-100 flex items-center gap-2">
-              Satoshi AI <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded-full font-mono">ONLINE</span>
+              Satoshi AI{" "}
+              <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded-full font-mono">
+                ONLINE
+              </span>
             </h3>
             <p className="text-xs text-slate-400">Your Web3 Learning Guide</p>
           </div>
@@ -253,7 +379,9 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
                 stopSpeaking();
               } else {
                 // Narrate the last assistant message automatically
-                const lastMsg = [...messages].reverse().find(m => m.role === "assistant");
+                const lastMsg = [...messages]
+                  .reverse()
+                  .find((m) => m.role === "assistant");
                 if (lastMsg) {
                   speakText(lastMsg.content, lastMsg.id);
                 }
@@ -264,10 +392,18 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
                 ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20"
                 : "bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700"
             }`}
-            title={isVoiceEnabled ? "Mute Satoshi Voice" : "Enable Satoshi Voice"}
+            title={
+              isVoiceEnabled ? "Mute Satoshi Voice" : "Enable Satoshi Voice"
+            }
           >
-            {isVoiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">{isVoiceEnabled ? "Voice On" : "Voice Off"}</span>
+            {isVoiceEnabled ? (
+              <Volume2 className="w-3.5 h-3.5" />
+            ) : (
+              <VolumeX className="w-3.5 h-3.5" />
+            )}
+            <span className="hidden sm:inline">
+              {isVoiceEnabled ? "Voice On" : "Voice Off"}
+            </span>
           </button>
 
           {onClose && (
@@ -298,12 +434,31 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
               {msg.role === "assistant" && (
                 <div className="flex items-center justify-between border-b border-slate-850/60 pb-1.5 mb-2.5">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-wider">SATOSHI AI MENTOR</span>
+                    <span className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-wider">
+                      SATOSHI AI MENTOR
+                    </span>
                     {speakingMessageId === msg.id && (
                       <div className="flex gap-0.5 items-end h-2.5 w-3 shrink-0">
-                        <span className="w-[1.5px] bg-amber-400 rounded-full animate-bounce" style={{ height: "100%", animationDuration: "0.6s" }}></span>
-                        <span className="w-[1.5px] bg-amber-400 rounded-full animate-bounce" style={{ height: "60%", animationDuration: "0.4s", animationDelay: "0.15s" }}></span>
-                        <span className="w-[1.5px] bg-amber-400 rounded-full animate-bounce" style={{ height: "80%", animationDuration: "0.5s", animationDelay: "0.3s" }}></span>
+                        <span
+                          className="w-[1.5px] bg-amber-400 rounded-full animate-bounce"
+                          style={{ height: "100%", animationDuration: "0.6s" }}
+                        ></span>
+                        <span
+                          className="w-[1.5px] bg-amber-400 rounded-full animate-bounce"
+                          style={{
+                            height: "60%",
+                            animationDuration: "0.4s",
+                            animationDelay: "0.15s",
+                          }}
+                        ></span>
+                        <span
+                          className="w-[1.5px] bg-amber-400 rounded-full animate-bounce"
+                          style={{
+                            height: "80%",
+                            animationDuration: "0.5s",
+                            animationDelay: "0.3s",
+                          }}
+                        ></span>
                       </div>
                     )}
                   </div>
@@ -311,11 +466,15 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
                     type="button"
                     onClick={() => speakText(msg.content, msg.id)}
                     className={`p-1 rounded-md transition-all ${
-                      speakingMessageId === msg.id 
-                        ? "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20" 
+                      speakingMessageId === msg.id
+                        ? "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
                         : "text-slate-500 hover:text-slate-300 hover:bg-slate-900"
                     }`}
-                    title={speakingMessageId === msg.id ? "Stop Narration" : "Speak Response"}
+                    title={
+                      speakingMessageId === msg.id
+                        ? "Stop Narration"
+                        : "Speak Response"
+                    }
                   >
                     {speakingMessageId === msg.id ? (
                       <Volume2 className="w-3.5 h-3.5 animate-pulse" />
@@ -329,24 +488,32 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
                 {msg.content.split("\n").map((line, idx) => {
                   // Basic markdown rendering support for bold, bullets, and inline code blocks
                   let rendered = line;
-                  
+
                   // Bold markdown replacement: **text**
-                  rendered = rendered.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-                  
+                  rendered = rendered.replace(
+                    /\*\*(.*?)\*\*/g,
+                    "<strong>$1</strong>",
+                  );
+
                   // Inline code replacement: `code`
-                  rendered = rendered.replace(/`(.*?)`/g, "<code class='bg-slate-850 px-1 py-0.5 rounded text-yellow-400 font-mono text-xs'>$1</code>");
-                  
+                  rendered = rendered.replace(
+                    /`(.*?)`/g,
+                    "<code class='bg-slate-850 px-1 py-0.5 rounded text-yellow-400 font-mono text-xs'>$1</code>",
+                  );
+
                   // Simple list bullets replacement
                   if (rendered.startsWith("- ")) {
                     return (
                       <li
                         key={idx}
                         className="list-disc pl-1 ml-4"
-                        dangerouslySetInnerHTML={{ __html: rendered.substring(2) }}
+                        dangerouslySetInnerHTML={{
+                          __html: rendered.substring(2),
+                        }}
                       />
                     );
                   }
-                  
+
                   return (
                     <p
                       key={idx}
@@ -356,7 +523,10 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
                 })}
               </div>
               <span className="block text-[9px] text-right text-slate-500 mt-1.5 font-mono">
-                {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {msg.timestamp.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </span>
             </div>
           </div>
@@ -366,11 +536,22 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
           <div className="flex justify-start">
             <div className="bg-slate-950/60 border border-slate-800 text-slate-400 rounded-2xl rounded-bl-none p-3.5 text-sm flex items-center gap-2">
               <span className="flex gap-1">
-                <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
-                <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
-                <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+                <span
+                  className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "0ms" }}
+                ></span>
+                <span
+                  className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "150ms" }}
+                ></span>
+                <span
+                  className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "300ms" }}
+                ></span>
               </span>
-              <span className="text-xs italic font-mono">Satoshi AI is compiling answer...</span>
+              <span className="text-xs italic font-mono">
+                Satoshi AI is compiling answer...
+              </span>
             </div>
           </div>
         )}
@@ -390,7 +571,9 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
 
       {/* Suggestion Chips */}
       <div className="p-3 bg-slate-950 border-t border-slate-800 space-y-2 select-none shrink-0">
-        <p className="text-[10px] font-mono text-slate-500 tracking-wider uppercase">SUGGESTED TOPICS</p>
+        <p className="text-[10px] font-mono text-slate-500 tracking-wider uppercase">
+          SUGGESTED TOPICS
+        </p>
         <div className="flex overflow-x-auto whitespace-nowrap gap-1.5 pb-1 scrollbar-none snap-x">
           {suggestionChips.map((chip, idx) => (
             <button
@@ -405,26 +588,91 @@ export default function AIAdvisor({ currentZone, userXP, userLevel, onClose, onP
         </div>
       </div>
 
+      {/* Voice Listening Active Banner */}
+      <AnimatePresence>
+        {isListening && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="px-3 py-2 bg-rose-500/10 border-t border-rose-500/20 flex items-center justify-between text-xs text-rose-300"
+          >
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+              </span>
+              <span className="font-mono font-semibold">
+                Listening to your voice... Speak now!
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={toggleListening}
+              className="text-[10px] uppercase font-mono px-2 py-0.5 bg-rose-500/20 hover:bg-rose-500/30 rounded text-rose-200"
+            >
+              Cancel
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Input Form */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          if (isListening) {
+            recognitionRef.current?.stop();
+            setIsListening(false);
+          }
           handleSend(input);
         }}
-        className="p-3 bg-slate-950 border-t border-slate-850 flex gap-2"
+        className="p-3 bg-slate-950 border-t border-slate-850 flex gap-2 items-center"
       >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={`Ask Satoshi AI about ${currentZone}...`}
-          disabled={isLoading}
-          className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors font-sans"
-        />
+        <div className="relative flex-1 flex items-center">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={
+              isListening
+                ? "Listening... speak your question..."
+                : `Ask Satoshi AI about ${currentZone}...`
+            }
+            disabled={isLoading}
+            className={`w-full bg-slate-900 border ${
+              isListening
+                ? "border-rose-500/80 ring-2 ring-rose-500/20 text-rose-100 placeholder:text-rose-400/70"
+                : "border-slate-800 text-slate-200 placeholder:text-slate-500 focus:border-indigo-500"
+            } rounded-xl pl-4 pr-11 py-2.5 text-sm transition-all font-sans focus:outline-none`}
+          />
+          <button
+            type="button"
+            onClick={toggleListening}
+            className={`absolute right-1.5 p-1.5 rounded-lg transition-all ${
+              isListening
+                ? "bg-rose-500 text-white animate-pulse shadow-md shadow-rose-500/30"
+                : "text-slate-400 hover:text-amber-400 hover:bg-slate-800/80"
+            }`}
+            title={
+              isListening
+                ? "Stop Listening"
+                : "Talk to Satoshi AI (Voice Input)"
+            }
+          >
+            {isListening ? (
+              <MicOff className="w-4 h-4" />
+            ) : (
+              <Mic className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+
         <button
           type="submit"
           disabled={isLoading || !input.trim()}
           className="p-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-white rounded-xl transition-colors shrink-0 flex items-center justify-center shadow-lg hover:shadow-indigo-500/10"
+          title="Send message"
         >
           <Send className="w-4 h-4" />
         </button>
