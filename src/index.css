@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Elegant Dark Obsidian and Graphite Palette */
+  --color-slate-950: #08090a; /* Main deep background */
+  --color-slate-900: #0f1115; /* Panels and secondary bars */
+  --color-slate-850: #15181c; /* Cards and modular items */
+  --color-slate-800: rgba(255, 255, 255, 0.06); /* Borders (white/5) */
+  --color-slate-700: rgba(255, 255, 255, 0.12); /* Slightly brighter borders */
+  --color-slate-650: rgba(255, 255, 255, 0.18);
+  --color-slate-600: rgba(255, 255, 255, 0.25);
+  --color-slate-500: #8a8f98; /* Muted texts */
+  --color-slate-400: #b0b5be; /* Mid-tone texts */
+  --color-slate-300: #d1d5db; /* Light texts */
+
+  /* Map Indigo components to elegant high-tech Cyan */
+  --color-indigo-300: #67e8f9;
+  --color-indigo-400: #22d3ee;
+  --color-indigo-500: #06b2d2;
+  --color-indigo-600: #0891b2;
+  --color-indigo-700: #0e7490;
+  --color-indigo-850: #0c4a6e;
+  --color-indigo-900: #155e75;
+  --color-indigo-950: #083344;
+}
+
+/* Custom dashboard scrollbar tweaks */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 17, 21, 0.6); /* Slate 900 background */
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15); /* Light translucent grey */
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #06b2d2; /* Cyberpunk indigo/cyan accent on hover */
+}
+
+/* Specific scrollbar thin utilities */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(6, 178, 210, 0.25); /* Translucent Cyan/Indigo */
+  border-radius: 99px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: #06b2d2;
+}
+
+/* Firefox compatibility */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) rgba(15, 17, 21, 0.6);
+}
+
+/* Map route dash keyframes */
+@keyframes dash {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+
+.animate-spin-slow {
+  animation: spin 12s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Add custom glow effects */
+.shadow-cyan-glow {
+  box-shadow: 0 0 15px var(--color-indigo-500);
+}
+.shadow-cyan-node {
+  box-shadow: 0 0 40px var(--color-indigo-600);
+}
+.shadow-cyan-soft {
+  box-shadow: 0 0 20px var(--color-indigo-500);
+}
+
+/* HIGH-CONTRAST THEME OVERRIDES */
+:root {
+  /* Default Elegant Cyan theme matches the default variables */
+}
+
+:root.theme-cyber-green {
+  --color-indigo-300: #86efac; /* green-300 */
+  --color-indigo-400: #4ade80; /* green-400 */
+  --color-indigo-500: #22c55e; /* green-500 */
+  --color-indigo-600: #16a34a; /* green-600 */
+  --color-indigo-700: #15803d; /* green-700 */
+  --color-indigo-850: #14532d; /* green-900 */
+  --color-indigo-900: #166534; /* green-850 equivalent */
+  --color-indigo-950: #052e16; /* green-950 */
+}
+
+:root.theme-neon-purple {
+  --color-indigo-300: #f5d0fe; /* fuchsia-200 */
+  --color-indigo-400: #e879f9; /* fuchsia-400 */
+  --color-indigo-500: #d946ef; /* fuchsia-500 */
+  --color-indigo-600: #c084fc; /* purple-400 */
+  --color-indigo-700: #a855f7; /* purple-500 */
+  --color-indigo-850: #4c1d95; /* purple-900 */
+  --color-indigo-900: #581c87; /* purple-850 equivalent */
+  --color-indigo-950: #2e1065; /* purple-950 */
+}
+
+:root.theme-amber-gold {
+  --color-indigo-300: #fef08a; /* yellow-200 */
+  --color-indigo-400: #facc15; /* yellow-400 */
+  --color-indigo-500: #eab308; /* yellow-500 */
+  --color-indigo-600: #ca8a04; /* yellow-600 */
+  --color-indigo-700: #a16207; /* yellow-700 */
+  --color-indigo-850: #713f12; /* yellow-900 */
+  --color-indigo-900: #854d0e; /* yellow-850 equivalent */
+  --color-indigo-950: #422006; /* yellow-950 */
+}
+
