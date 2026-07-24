@@ -36,11 +36,21 @@ export interface ActiveDuelItem {
 export interface DailyMission {
   id: string;
   description: string;
-  type: "sandbox_swap" | "sandbox_mine" | "sandbox_sign" | "sandbox_keypair" | "wallet_seed" | "contract_deploy" | "ai_ask" | "quest_complete";
+  type:
+    | "sandbox_swap"
+    | "sandbox_mine"
+    | "sandbox_sign"
+    | "sandbox_keypair"
+    | "wallet_seed"
+    | "contract_deploy"
+    | "ai_ask"
+    | "quest_complete";
   targetCount: number;
   currentCount: number;
   isCompleted: boolean;
   xpReward: number;
+  levelRequired?: number;
+  levelCategory?: string;
 }
 
 export interface Competitor {

@@ -9,7 +9,11 @@ interface DailyMissionsProps {
   onMissionClick?: (missionType: string) => void;
 }
 
-export default function DailyMissions({ missions, lastMissionsDate, onMissionClick }: DailyMissionsProps) {
+export default function DailyMissions({
+  missions,
+  lastMissionsDate,
+  onMissionClick,
+}: DailyMissionsProps) {
   if (!missions || missions.length === 0) return null;
 
   // Calculate percentage of missions completed
@@ -21,14 +25,21 @@ export default function DailyMissions({ missions, lastMissionsDate, onMissionCli
     if (!dateStr) return "Today";
     try {
       const d = new Date(dateStr + "T00:00:00");
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
     } catch {
       return "Today";
     }
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl w-full max-w-6xl mx-auto space-y-4" id="daily-missions-dashboard">
+    <div
+      className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl w-full max-w-6xl mx-auto space-y-4"
+      id="daily-missions-dashboard"
+    >
       {/* Header controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-850">
         <div className="flex items-center gap-2">
@@ -36,8 +47,12 @@ export default function DailyMissions({ missions, lastMissionsDate, onMissionCli
             <Target className="w-4 h-4 text-indigo-400 animate-pulse" />
           </div>
           <div>
-            <span className="text-xs font-mono font-bold tracking-wider text-slate-300 uppercase block">DAILY MISSIONS</span>
-            <span className="text-[10px] font-mono text-slate-500">RESYNC DATE: {formatDate(lastMissionsDate)}</span>
+            <span className="text-xs font-mono font-bold tracking-wider text-slate-300 uppercase block">
+              DAILY MISSIONS
+            </span>
+            <span className="text-[10px] font-mono text-slate-500">
+              RESYNC DATE: {formatDate(lastMissionsDate)}
+            </span>
           </div>
         </div>
 
@@ -45,18 +60,22 @@ export default function DailyMissions({ missions, lastMissionsDate, onMissionCli
         <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
           <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-850/60 rounded-lg px-2.5 py-1">
             <span className="text-slate-500">COMPLETED:</span>
-            <span className="text-white font-extrabold text-indigo-400">{completedCount} / 3</span>
+            <span className="text-white font-extrabold text-indigo-400">
+              {completedCount} / 3
+            </span>
           </div>
-          
+
           {/* Progress bar */}
           <div className="flex items-center gap-2">
             <div className="w-24 bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-850/40">
-              <div 
-                className="bg-gradient-to-r from-indigo-500 to-cyan-400 h-full rounded-full transition-all duration-500" 
+              <div
+                className="bg-gradient-to-r from-indigo-500 to-cyan-400 h-full rounded-full transition-all duration-500"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-            <span className="text-slate-400 text-[10px] font-bold">{progressPercent}%</span>
+            <span className="text-slate-400 text-[10px] font-bold">
+              {progressPercent}%
+            </span>
           </div>
         </div>
       </div>
@@ -84,13 +103,22 @@ export default function DailyMissions({ missions, lastMissionsDate, onMissionCli
                     )}
                   </div>
                   <div>
-                    <p className={`text-xs font-semibold leading-relaxed ${m.isCompleted ? "line-through text-slate-500" : "text-slate-200"}`}>
+                    <p
+                      className={`text-xs font-semibold leading-relaxed ${m.isCompleted ? "line-through text-slate-500" : "text-slate-200"}`}
+                    >
                       {m.description}
                     </p>
-                    <p className="text-[10px] text-indigo-400/90 font-mono font-bold mt-1.5 flex items-center gap-1">
-                      <Star className="w-3 h-3 text-indigo-400 fill-current" />
-                      +{m.xpReward} XP BONUS
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1.5 font-mono text-[10px]">
+                      {m.levelCategory && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
+                          {m.levelCategory}
+                        </span>
+                      )}
+                      <span className="text-amber-400 font-bold flex items-center gap-1">
+                        <Star className="w-3 h-3 text-amber-400 fill-current" />
+                        +{m.xpReward} XP BONUS
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -111,7 +139,9 @@ export default function DailyMissions({ missions, lastMissionsDate, onMissionCli
               {/* Progress Count */}
               <div className="flex items-center justify-between border-t border-slate-850/50 pt-2.5 mt-1 font-mono text-[10px]">
                 <span className="text-slate-500">PROGRESS</span>
-                <span className={`font-bold ${m.isCompleted ? "text-emerald-400" : "text-slate-300"}`}>
+                <span
+                  className={`font-bold ${m.isCompleted ? "text-emerald-400" : "text-slate-300"}`}
+                >
                   {m.currentCount} / {m.targetCount}
                 </span>
               </div>

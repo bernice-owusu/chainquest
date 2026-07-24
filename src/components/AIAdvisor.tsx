@@ -23,7 +23,7 @@ interface Message {
 }
 
 interface AIAdvisorProps {
-  currentZone: string;
+  currentZone: string | null;
   userXP: number;
   userLevel: number;
   onClose?: () => void;
@@ -637,7 +637,7 @@ export default function AIAdvisor({
             placeholder={
               isListening
                 ? "Listening... speak your question..."
-                : `Ask Satoshi AI about ${currentZone}...`
+                : `Ask Satoshi AI about ${currentZone || "blockchain"}...`
             }
             disabled={isLoading}
             className={`w-full bg-slate-900 border ${

@@ -1,14 +1,28 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Competitor, UserProfile } from "../types";
-import { 
-  X, Award, Shield, Cpu, Zap, Trophy, Play, Check, AlertTriangle, 
-  Terminal, Sparkles, Hourglass, Swords, Flame, ArrowRight, User
+import {
+  X,
+  Award,
+  Shield,
+  Cpu,
+  Zap,
+  Trophy,
+  Play,
+  Check,
+  AlertTriangle,
+  Terminal,
+  Sparkles,
+  Hourglass,
+  Swords,
+  Flame,
+  ArrowRight,
+  User,
 } from "lucide-react";
 import { playSound } from "../utils/audio";
 
 interface ChallengeModalProps {
   competitor: Competitor;
-  userProfile: UserProfile;
+  userProfile: UserProfile | null;
   onClose: () => void;
   onUpdateXP: (xpAmount: number, isDuel?: boolean) => void;
   initialState?: DuelState;
@@ -18,7 +32,15 @@ interface ChallengeModalProps {
   onResolveDuel?: (duelId: string, xpChange: number) => void;
 }
 
-type DuelState = "intro" | "awaiting_acceptance" | "declined" | "select" | "playing_quiz" | "playing_race" | "awaiting_opponent_completion" | "result";
+type DuelState =
+  | "intro"
+  | "awaiting_acceptance"
+  | "declined"
+  | "select"
+  | "playing_quiz"
+  | "playing_race"
+  | "awaiting_opponent_completion"
+  | "result";
 
 interface QuizQuestion {
   id: string;
@@ -43,10 +65,11 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
       "No vulnerability detected",
       "Reentrancy: Balance is updated AFTER the external call",
       "Integer Overflow: amount is not checked against max uint",
-      "Tx.origin authorization exploit"
+      "Tx.origin authorization exploit",
     ],
     correctIndex: 1,
-    explanation: "Because the balance is updated *after* the external contract call, an attacker can recursively call 'withdraw' before their balance decreases, draining the entire contract's funds."
+    explanation:
+      "Because the balance is updated *after* the external contract call, an attacker can recursively call 'withdraw' before their balance decreases, draining the entire contract's funds.",
   },
   {
     id: "q2",
@@ -59,10 +82,11 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
       "Access Control issue: tx.origin can be spoofed by an intermediary contract",
       "Gas exhaustion exploit",
       "Reentrancy vulnerability",
-      "Denial of Service: to address blocking the transfer"
+      "Denial of Service: to address blocking the transfer",
     ],
     correctIndex: 0,
-    explanation: "Using tx.origin for authorization allows a malicious contract to trick the owner into calling it, which then forwards the call to this contract. The tx.origin will still be the owner, bypassing the security check. Use msg.sender instead."
+    explanation:
+      "Using tx.origin for authorization allows a malicious contract to trick the owner into calling it, which then forwards the call to this contract. The tx.origin will still be the owner, bypassing the security check. Use msg.sender instead.",
   },
   {
     id: "q3",
@@ -77,10 +101,11 @@ function transfer(address to, uint amount) public {
       "No issue because balance check uses '>= 0'",
       "Reentrancy vulnerability",
       "Integer Underflow: subtracting past 0 wraps around to a massive number",
-      "Denial of service on array loop"
+      "Denial of service on array loop",
     ],
     correctIndex: 2,
-    explanation: "In Solidity version <0.8.0, arithmetic operations wrap around by default. If 'balances[msg.sender] - amount' is negative, it wraps around to a massive positive integer, making the '>= 0' check always pass!"
+    explanation:
+      "In Solidity version <0.8.0, arithmetic operations wrap around by default. If 'balances[msg.sender] - amount' is negative, it wraps around to a massive positive integer, making the '>= 0' check always pass!",
   },
   {
     id: "q4",
@@ -93,10 +118,11 @@ function transfer(address to, uint amount) public {
       "Vulnerable to force-feeding ether via 'selfdestruct'",
       "Reentrancy exploit",
       "Transaction order dependence",
-      "Improper visibility of variable"
+      "Improper visibility of variable",
     ],
     correctIndex: 0,
-    explanation: "Contracts can be forcefully sent ether using the 'selfdestruct(target)' opcode from another contract. This bypasses any receive/fallback functions, meaning address(this).balance can exceed targetFunds, permanently locking the state."
+    explanation:
+      "Contracts can be forcefully sent ether using the 'selfdestruct(target)' opcode from another contract. This bypasses any receive/fallback functions, meaning address(this).balance can exceed targetFunds, permanently locking the state.",
   },
   {
     id: "q5",
@@ -109,31 +135,36 @@ function transfer(address to, uint amount) public {
       "The private keyword encrypts the data",
       "Assuming private variables are hidden from off-chain inspection",
       "Anyone can modify secretKey because it's private",
-      "Compiler error on private storage"
+      "Compiler error on private storage",
     ],
     correctIndex: 1,
-    explanation: "All data stored on a public blockchain is completely visible to anyone off-chain, regardless of visibility modifiers like 'private'. Private only restricts read/write access from other smart contracts on-chain."
-  }
+    explanation:
+      "All data stored on a public blockchain is completely visible to anyone off-chain, regardless of visibility modifiers like 'private'. Private only restricts read/write access from other smart contracts on-chain.",
+  },
 ];
 
-export default function ChallengeModal({ 
-  competitor, 
-  userProfile, 
-  onClose, 
+export default function ChallengeModal({
+  competitor,
+  userProfile,
+  onClose,
   onUpdateXP,
   initialState,
   incomingDuelType,
   duelId,
   challengerScore,
-  onResolveDuel
+  onResolveDuel,
 }: ChallengeModalProps) {
-  const [gameState, setGameState] = useState<DuelState>(initialState || "intro");
-  const [selectedChallenge, setSelectedChallenge] = useState<"quiz" | "race" | null>(incomingDuelType || null);
+  const [gameState, setGameState] = useState<DuelState>(
+    initialState || "intro",
+  );
+  const [selectedChallenge, setSelectedChallenge] = useState<
+    "quiz" | "race" | null
+  >(incomingDuelType || null);
   const [acceptancePercentage, setAcceptancePercentage] = useState(0);
   const [declinedReason, setDeclinedReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [raceStartTime, setRaceStartTime] = useState<number>(0);
-  
+
   // Quiz states
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -146,7 +177,9 @@ export default function ChallengeModal({
   // Hash Race states
   const [playerProgress, setPlayerProgress] = useState(0);
   const [opponentProgress, setOpponentProgress] = useState(0);
-  const [currentHash, setCurrentHash] = useState("0x0000000000000000000000000000000000000000");
+  const [currentHash, setCurrentHash] = useState(
+    "0x0000000000000000000000000000000000000000",
+  );
   const [hashRate, setHashRate] = useState(0);
   const [raceActive, setRaceActive] = useState(false);
   const raceIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -156,9 +189,9 @@ export default function ChallengeModal({
   const [xpChange, setXpChange] = useState<number>(0);
 
   const getCurrentUserDbId = () => {
-    return userProfile.isRealUser && userProfile.accountUsername
+    return userProfile?.isRealUser && userProfile?.accountUsername
       ? userProfile.accountUsername.trim().toLowerCase()
-      : `guest_${userProfile.userId}`;
+      : `guest_${userProfile?.userId || "anon"}`;
   };
 
   // Trigger sound feedback when switching states
@@ -188,7 +221,7 @@ export default function ChallengeModal({
     if (gameState === "awaiting_acceptance") {
       setAcceptancePercentage(0);
       const progressTimer = setInterval(() => {
-        setAcceptancePercentage(prev => {
+        setAcceptancePercentage((prev) => {
           if (prev >= 100) {
             clearInterval(progressTimer);
             return 100;
@@ -221,8 +254,8 @@ export default function ChallengeModal({
   // Opponent difficulty speed based on level
   const getOpponentParameters = () => {
     const lvl = competitor.level;
-    const accuracy = 0.4 + (lvl * 0.1); // range 0.5 to 0.9+
-    const speedMs = Math.max(1500, 4000 - (lvl * 400)); // range 1500ms (fast) to 3600ms (slow)
+    const accuracy = 0.4 + lvl * 0.1; // range 0.5 to 0.9+
+    const speedMs = Math.max(1500, 4000 - lvl * 400); // range 1500ms (fast) to 3600ms (slow)
     const hashSpeed = lvl * 4 + 5; // how much progress they gain per second
     return { accuracy, speedMs, hashSpeed };
   };
@@ -244,7 +277,7 @@ export default function ChallengeModal({
   const startQuizTimer = () => {
     setQuizTimer(15);
     if (quizTimerRef.current) clearInterval(quizTimerRef.current);
-    
+
     // Determine if opponent gets it right on this question
     let opponentDelay = 3000;
     let gotItRight = false;
@@ -262,7 +295,7 @@ export default function ChallengeModal({
 
     const oppTimer = setTimeout(() => {
       if (gotItRight) {
-        setOpponentScore(prev => prev + 1);
+        setOpponentScore((prev) => prev + 1);
       }
     }, opponentDelay);
 
@@ -290,10 +323,10 @@ export default function ChallengeModal({
   const revealAnswer = (playerAnswer: number) => {
     if (quizTimerRef.current) clearInterval(quizTimerRef.current);
     setIsAnswerRevealed(true);
-    
+
     const currentQ = QUIZ_QUESTIONS[currentQuestionIndex];
     if (playerAnswer === currentQ.correctIndex) {
-      setQuizScore(prev => prev + 1);
+      setQuizScore((prev) => prev + 1);
       playSound("click");
     }
   };
@@ -302,9 +335,10 @@ export default function ChallengeModal({
     playSound("click");
     setIsAnswerRevealed(false);
     setSelectedAnswer(null);
-    
-    if (currentQuestionIndex + 1 < 3) { // 3-question duel
-      setCurrentQuestionIndex(prev => prev + 1);
+
+    if (currentQuestionIndex + 1 < 3) {
+      // 3-question duel
+      setCurrentQuestionIndex((prev) => prev + 1);
       startQuizTimer();
     } else {
       endQuizGame();
@@ -314,7 +348,7 @@ export default function ChallengeModal({
   const endQuizGame = () => {
     setIsSubmitting(true);
     const myScore = quizScore;
-    
+
     if (duelId) {
       // Resolve incoming duel on the backend!
       fetch("/api/duels/resolve", {
@@ -322,30 +356,30 @@ export default function ChallengeModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           duelId,
-          targetScore: myScore
-        })
+          targetScore: myScore,
+        }),
       })
-      .then(res => res.json())
-      .then(data => {
-        setIsSubmitting(false);
-        if (data.success) {
-          const isWinner = data.winnerId === getCurrentUserDbId();
-          setWinnerName(data.winnerName);
-          const change = isWinner ? 50 : data.winnerId === null ? 15 : -15;
-          setXpChange(change);
-          
-          if (onResolveDuel) {
-            onResolveDuel(duelId, change);
-          } else {
-            onUpdateXP(change, true);
+        .then((res) => res.json())
+        .then((data) => {
+          setIsSubmitting(false);
+          if (data.success) {
+            const isWinner = data.winnerId === getCurrentUserDbId();
+            setWinnerName(data.winnerName);
+            const change = isWinner ? 50 : data.winnerId === null ? 15 : -15;
+            setXpChange(change);
+
+            if (onResolveDuel) {
+              onResolveDuel(duelId, change);
+            } else {
+              onUpdateXP(change, true);
+            }
+            setGameState("result");
           }
-          setGameState("result");
-        }
-      })
-      .catch(err => {
-        console.error("Resolve duel error:", err);
-        setIsSubmitting(false);
-      });
+        })
+        .catch((err) => {
+          console.error("Resolve duel error:", err);
+          setIsSubmitting(false);
+        });
     } else {
       // Create outgoing duel challenge in Firestore!
       fetch("/api/duels/create", {
@@ -353,24 +387,24 @@ export default function ChallengeModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           challengerId: getCurrentUserDbId(),
-          challengerName: userProfile.username,
-          challengerAvatar: userProfile.avatar,
+          challengerName: userProfile?.username || "Challenger",
+          challengerAvatar: userProfile?.avatar || "👤",
           targetId: competitor.id,
           challengeType: "quiz",
-          challengerScore: myScore
+          challengerScore: myScore,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setIsSubmitting(false);
+          if (data.success) {
+            setGameState("awaiting_opponent_completion");
+          }
         })
-      })
-      .then(res => res.json())
-      .then(data => {
-        setIsSubmitting(false);
-        if (data.success) {
-          setGameState("awaiting_opponent_completion");
-        }
-      })
-      .catch(err => {
-        console.error("Create duel error:", err);
-        setIsSubmitting(false);
-      });
+        .catch((err) => {
+          console.error("Create duel error:", err);
+          setIsSubmitting(false);
+        });
     }
   };
 
@@ -387,11 +421,11 @@ export default function ChallengeModal({
     setRaceStartTime(Date.now());
 
     if (raceIntervalRef.current) clearInterval(raceIntervalRef.current);
-    
+
     // If incoming challenge: the opponent progress matches Challenger's speed linearly!
-    const targetRaceDuration = challengerScore || (4000 - competitor.level * 400); 
+    const targetRaceDuration = challengerScore || 4000 - competitor.level * 400;
     const tickMs = 100;
-    const increment = (100 / (targetRaceDuration / tickMs));
+    const increment = 100 / (targetRaceDuration / tickMs);
 
     raceIntervalRef.current = setInterval(() => {
       // Opponent progress increment
@@ -407,24 +441,27 @@ export default function ChallengeModal({
       });
 
       // Decay player hash rate slightly
-      setHashRate(prev => Math.max(0, prev - 1.5));
-      
-      // Randomize flashing hash
-      setCurrentHash("0x" + Array.from({length: 40}, () => 
-        "0123456789abcdef"[Math.floor(Math.random() * 16)]
-      ).join(""));
+      setHashRate((prev) => Math.max(0, prev - 1.5));
 
+      // Randomize flashing hash
+      setCurrentHash(
+        "0x" +
+          Array.from(
+            { length: 40 },
+            () => "0123456789abcdef"[Math.floor(Math.random() * 16)],
+          ).join(""),
+      );
     }, tickMs);
   };
 
   const clickMine = () => {
     if (!raceActive) return;
     playSound("click");
-    
+
     // Increase hash rate and progress
-    setHashRate(prev => Math.min(250, prev + 25));
+    setHashRate((prev) => Math.min(250, prev + 25));
     setPlayerProgress((prev) => {
-      const nextPlayer = prev + 4.5 + (userProfile.level * 0.3); // higher level users have a small mining boost!
+      const nextPlayer = prev + 4.5 + (userProfile?.level || 1) * 0.3; // higher level users have a small mining boost!
       if (nextPlayer >= 100) {
         clearInterval(raceIntervalRef.current!);
         setRaceActive(false);
@@ -446,30 +483,30 @@ export default function ChallengeModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           duelId,
-          targetScore: elapsed
-        })
+          targetScore: elapsed,
+        }),
       })
-      .then(res => res.json())
-      .then(data => {
-        setIsSubmitting(false);
-        if (data.success) {
-          const isWinner = data.winnerId === getCurrentUserDbId();
-          setWinnerName(data.winnerName);
-          const change = isWinner ? 50 : data.winnerId === null ? 15 : -15;
-          setXpChange(change);
-          
-          if (onResolveDuel) {
-            onResolveDuel(duelId, change);
-          } else {
-            onUpdateXP(change, true);
+        .then((res) => res.json())
+        .then((data) => {
+          setIsSubmitting(false);
+          if (data.success) {
+            const isWinner = data.winnerId === getCurrentUserDbId();
+            setWinnerName(data.winnerName);
+            const change = isWinner ? 50 : data.winnerId === null ? 15 : -15;
+            setXpChange(change);
+
+            if (onResolveDuel) {
+              onResolveDuel(duelId, change);
+            } else {
+              onUpdateXP(change, true);
+            }
+            setGameState("result");
           }
-          setGameState("result");
-        }
-      })
-      .catch(err => {
-        console.error("Resolve race error:", err);
-        setIsSubmitting(false);
-      });
+        })
+        .catch((err) => {
+          console.error("Resolve race error:", err);
+          setIsSubmitting(false);
+        });
     } else {
       // Create outgoing duel challenge in Firestore
       fetch("/api/duels/create", {
@@ -477,38 +514,39 @@ export default function ChallengeModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           challengerId: getCurrentUserDbId(),
-          challengerName: userProfile.username,
-          challengerAvatar: userProfile.avatar,
+          challengerName: userProfile?.username || "Challenger",
+          challengerAvatar: userProfile?.avatar || "👤",
           targetId: competitor.id,
           challengeType: "race",
-          challengerScore: elapsed
+          challengerScore: elapsed,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setIsSubmitting(false);
+          if (data.success) {
+            setGameState("awaiting_opponent_completion");
+          }
         })
-      })
-      .then(res => res.json())
-      .then(data => {
-        setIsSubmitting(false);
-        if (data.success) {
-          setGameState("awaiting_opponent_completion");
-        }
-      })
-      .catch(err => {
-        console.error("Create duel error:", err);
-        setIsSubmitting(false);
-      });
+        .catch((err) => {
+          console.error("Create duel error:", err);
+          setIsSubmitting(false);
+        });
     }
   };
 
-
   return (
     <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-      <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]" id="duel-arena-modal">
-        
+      <div
+        className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
+        id="duel-arena-modal"
+      >
         {/* Header decoration */}
         <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-red-500 via-indigo-500 to-emerald-500" />
-        
+
         {/* Close Button */}
-        <button 
-          onClick={handleClose} 
+        <button
+          onClick={handleClose}
           className="absolute top-4 right-4 text-slate-400 hover:text-white hover:bg-slate-800 p-2 rounded-full transition-all duration-200 z-10"
         >
           <X className="w-5 h-5" />
@@ -536,11 +574,17 @@ export default function ChallengeModal({
             <div className="grid grid-cols-5 items-center w-full max-w-md gap-4 py-4">
               {/* User */}
               <div className="col-span-2 bg-slate-950/40 border border-indigo-500/20 rounded-2xl p-4 flex flex-col items-center">
-                <span className="text-4xl mb-2">{userProfile.avatar || "👨‍💻"}</span>
-                <span className="text-xs font-bold text-indigo-300 line-clamp-1">{userProfile.username}</span>
-                <span className="text-[10px] text-slate-500 font-mono mt-0.5">LVL {userProfile.level}</span>
+                <span className="text-4xl mb-2">
+                  {userProfile?.avatar || "👨‍💻"}
+                </span>
+                <span className="text-xs font-bold text-indigo-300 line-clamp-1">
+                  {userProfile?.username || "Player"}
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono mt-0.5">
+                  LVL {userProfile?.level || 1}
+                </span>
                 <span className="text-[9px] font-mono font-bold text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-full mt-2">
-                  {userProfile.xp} XP
+                  {userProfile?.xp || 0} XP
                 </span>
               </div>
 
@@ -554,8 +598,12 @@ export default function ChallengeModal({
               {/* Competitor */}
               <div className="col-span-2 bg-slate-950/40 border border-slate-800 rounded-2xl p-4 flex flex-col items-center">
                 <span className="text-4xl mb-2">{competitor.avatar}</span>
-                <span className="text-xs font-bold text-slate-200 line-clamp-1">{competitor.username}</span>
-                <span className="text-[10px] text-slate-500 font-mono mt-0.5">LVL {competitor.level}</span>
+                <span className="text-xs font-bold text-slate-200 line-clamp-1">
+                  {competitor.username}
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono mt-0.5">
+                  LVL {competitor.level}
+                </span>
                 <span className="text-[9px] font-mono font-bold text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-full mt-2">
                   {competitor.xp} XP
                 </span>
@@ -563,13 +611,13 @@ export default function ChallengeModal({
             </div>
 
             <div className="space-y-3 max-w-sm w-full">
-              <button 
+              <button
                 onClick={() => transitionTo("select")}
                 className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white text-xs font-bold py-3.5 px-6 rounded-2xl transition-all duration-300 shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
               >
                 Enter the Duel <ArrowRight className="w-4 h-4" />
               </button>
-              <button 
+              <button
                 onClick={handleClose}
                 className="w-full border border-slate-800 hover:bg-slate-800/40 text-slate-400 hover:text-slate-200 text-xs font-bold py-3 px-6 rounded-2xl transition-all"
               >
@@ -588,10 +636,10 @@ export default function ChallengeModal({
               {/* Pulsing ring */}
               <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20 animate-ping" />
               <div className="absolute inset-2 rounded-full border-2 border-indigo-400/40 animate-pulse" />
-              
+
               {/* Rotating border container */}
               <div className="absolute inset-0 rounded-full border-4 border-t-indigo-500 border-r-indigo-500 border-b-transparent border-l-transparent animate-spin duration-1000" />
-              
+
               {/* Avatar */}
               <span className="text-5xl z-10">{competitor.avatar}</span>
             </div>
@@ -602,7 +650,11 @@ export default function ChallengeModal({
                 CONNECTING DUELISTS
               </h2>
               <p className="text-xs text-slate-400">
-                Pinging <strong className="text-slate-200">{competitor.username}</strong> on the Island decentralized lobby...
+                Pinging{" "}
+                <strong className="text-slate-200">
+                  {competitor.username}
+                </strong>{" "}
+                on the Island decentralized lobby...
               </p>
             </div>
 
@@ -610,24 +662,33 @@ export default function ChallengeModal({
             <div className="w-full max-w-sm bg-slate-950 border border-slate-850 rounded-2xl p-4 text-left font-mono text-[10px] text-slate-400 space-y-1.5 shadow-inner">
               <div className="flex items-center gap-2 text-indigo-400">
                 <span>❯</span>
-                <span className="animate-pulse">INITIATING CRYPTOGRAPHIC DUEL REQUEST...</span>
+                <span className="animate-pulse">
+                  INITIATING CRYPTOGRAPHIC DUEL REQUEST...
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-indigo-400">❯</span>
-                <span>MATCH Lobby Node: {Math.random().toString(36).substr(2, 6).toUpperCase()}</span>
+                <span>
+                  MATCH Lobby Node:{" "}
+                  {Math.random().toString(36).substr(2, 6).toUpperCase()}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-indigo-400">❯</span>
-                <span>Broadcasting state packet: {acceptancePercentage}% complete</span>
+                <span>
+                  Broadcasting state packet: {acceptancePercentage}% complete
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-indigo-400">❯</span>
-                <span className="text-slate-500">Awaiting block signature from competitor...</span>
+                <span className="text-slate-500">
+                  Awaiting block signature from competitor...
+                </span>
               </div>
             </div>
 
             {/* Cancel Button */}
-            <button 
+            <button
               onClick={() => transitionTo("intro")}
               className="text-xs text-slate-500 hover:text-slate-300 underline"
             >
@@ -654,7 +715,7 @@ export default function ChallengeModal({
               </p>
             </div>
 
-            <button 
+            <button
               onClick={handleClose}
               className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-2.5 px-6 rounded-xl transition-all"
             >
@@ -673,13 +734,17 @@ export default function ChallengeModal({
                 SELECT YOUR DUEL TYPE
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Choose the task you want to execute to defeat <strong className="text-slate-200">{competitor.username}</strong>!
+                Choose the task you want to execute to defeat{" "}
+                <strong className="text-slate-200">
+                  {competitor.username}
+                </strong>
+                !
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Option 1: Smart Contract Bug Hunt */}
-              <div 
+              <div
                 onClick={startQuizGame}
                 className="bg-slate-950/40 border border-slate-800 hover:border-indigo-500/60 p-5 rounded-2xl cursor-pointer group transition-all hover:shadow-lg hover:shadow-indigo-500/5 hover:-translate-y-0.5"
               >
@@ -692,10 +757,13 @@ export default function ChallengeModal({
                       🛡️ SMART CONTRACT BUG HUNT
                     </h3>
                     <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-                      Audit smart contract snippets. Detect reentrancy, access control bypass, and integer underflows. Best of 3!
+                      Audit smart contract snippets. Detect reentrancy, access
+                      control bypass, and integer underflows. Best of 3!
                     </p>
                     <div className="flex items-center gap-2 mt-4 text-[10px] font-mono">
-                      <span className="text-emerald-400 font-bold">REWARD: +{50 + competitor.level * 10} XP</span>
+                      <span className="text-emerald-400 font-bold">
+                        REWARD: +{50 + competitor.level * 10} XP
+                      </span>
                       <span className="text-slate-600">|</span>
                       <span className="text-red-400">RISK: -15 XP</span>
                     </div>
@@ -704,7 +772,7 @@ export default function ChallengeModal({
               </div>
 
               {/* Option 2: Cryptographic Hash Race */}
-              <div 
+              <div
                 onClick={startHashRace}
                 className="bg-slate-950/40 border border-slate-800 hover:border-red-500/60 p-5 rounded-2xl cursor-pointer group transition-all hover:shadow-lg hover:shadow-red-500/5 hover:-translate-y-0.5"
               >
@@ -717,10 +785,14 @@ export default function ChallengeModal({
                       ⚡ CRYPTOGRAPHIC HASH RACE
                     </h3>
                     <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-                      Click to trigger cryptographic hash calculations and mine blocks. Race against {competitor.username}'s automated hashpower!
+                      Click to trigger cryptographic hash calculations and mine
+                      blocks. Race against {competitor.username}'s automated
+                      hashpower!
                     </p>
                     <div className="flex items-center gap-2 mt-4 text-[10px] font-mono">
-                      <span className="text-emerald-400 font-bold">REWARD: +{45 + competitor.level * 8} XP</span>
+                      <span className="text-emerald-400 font-bold">
+                        REWARD: +{45 + competitor.level * 8} XP
+                      </span>
                       <span className="text-slate-600">|</span>
                       <span className="text-red-400">RISK: -15 XP</span>
                     </div>
@@ -729,7 +801,7 @@ export default function ChallengeModal({
               </div>
             </div>
 
-            <button 
+            <button
               onClick={() => transitionTo("intro")}
               className="text-center text-xs text-slate-500 hover:text-slate-300 underline pt-2"
             >
@@ -746,23 +818,31 @@ export default function ChallengeModal({
             {/* Duel Score Board */}
             <div className="bg-slate-950 border border-slate-850 rounded-2xl p-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-lg">{userProfile.avatar}</span>
+                <span className="text-lg">{userProfile?.avatar || "👨‍💻"}</span>
                 <div>
                   <p className="text-[10px] font-mono text-slate-400">YOU</p>
-                  <p className="text-xs font-bold text-indigo-400">{quizScore} / 3 PTS</p>
+                  <p className="text-xs font-bold text-indigo-400">
+                    {quizScore} / 3 PTS
+                  </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-full text-xs font-mono text-slate-400">
                 <Hourglass className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
                 <span>Q {currentQuestionIndex + 1}/3</span>
-                <span className="text-indigo-400 font-bold ml-1">{quizTimer}s</span>
+                <span className="text-indigo-400 font-bold ml-1">
+                  {quizTimer}s
+                </span>
               </div>
 
               <div className="flex items-center gap-2 text-right">
                 <div>
-                  <p className="text-[10px] font-mono text-slate-400">{competitor.username.toUpperCase()}</p>
-                  <p className="text-xs font-bold text-red-400">{opponentScore} / 3 PTS</p>
+                  <p className="text-[10px] font-mono text-slate-400">
+                    {competitor.username.toUpperCase()}
+                  </p>
+                  <p className="text-xs font-bold text-red-400">
+                    {opponentScore} / 3 PTS
+                  </p>
                 </div>
                 <span className="text-lg">{competitor.avatar}</span>
               </div>
@@ -792,17 +872,21 @@ export default function ChallengeModal({
             <div className="grid grid-cols-1 gap-2.5">
               {QUIZ_QUESTIONS[currentQuestionIndex].options.map((opt, idx) => {
                 const isSelected = selectedAnswer === idx;
-                const isCorrect = QUIZ_QUESTIONS[currentQuestionIndex].correctIndex === idx;
-                
-                let optionStyle = "bg-slate-950/40 border-slate-850 hover:bg-slate-950 hover:border-slate-800 text-slate-200";
-                
+                const isCorrect =
+                  QUIZ_QUESTIONS[currentQuestionIndex].correctIndex === idx;
+
+                let optionStyle =
+                  "bg-slate-950/40 border-slate-850 hover:bg-slate-950 hover:border-slate-800 text-slate-200";
+
                 if (isAnswerRevealed) {
                   if (isCorrect) {
-                    optionStyle = "bg-emerald-500/10 border-emerald-500 text-emerald-400";
+                    optionStyle =
+                      "bg-emerald-500/10 border-emerald-500 text-emerald-400";
                   } else if (isSelected) {
                     optionStyle = "bg-red-500/10 border-red-500 text-red-400";
                   } else {
-                    optionStyle = "bg-slate-950/20 border-slate-900 text-slate-600";
+                    optionStyle =
+                      "bg-slate-950/20 border-slate-900 text-slate-600";
                   }
                 }
 
@@ -814,7 +898,9 @@ export default function ChallengeModal({
                     className={`p-3.5 rounded-xl border text-left text-xs font-semibold transition-all duration-200 flex items-center justify-between gap-3 ${optionStyle}`}
                   >
                     <span>{opt}</span>
-                    {isAnswerRevealed && isCorrect && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
+                    {isAnswerRevealed && isCorrect && (
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                    )}
                   </button>
                 );
               })}
@@ -857,7 +943,12 @@ export default function ChallengeModal({
                 Mempool Block Mining Speed Battle
               </h3>
               <p className="text-xs text-slate-400 max-w-md mx-auto">
-                Spam click the Miner to increase your Hash Rate! Find the block nonce before <strong className="text-slate-200">{competitor.username}</strong> solves the block header hash!
+                Spam click the Miner to increase your Hash Rate! Find the block
+                nonce before{" "}
+                <strong className="text-slate-200">
+                  {competitor.username}
+                </strong>{" "}
+                solves the block header hash!
               </p>
             </div>
 
@@ -865,19 +956,24 @@ export default function ChallengeModal({
             <div className="grid grid-cols-2 gap-4 w-full max-w-md">
               {/* User stats */}
               <div className="bg-slate-950 border border-indigo-500/20 rounded-2xl p-4 flex flex-col items-center">
-                <span className="text-2xl mb-1">{userProfile.avatar}</span>
-                <span className="text-xs font-bold text-indigo-300">YOU (Miner)</span>
+                <span className="text-2xl mb-1">
+                  {userProfile?.avatar || "👨‍💻"}
+                </span>
+                <span className="text-xs font-bold text-indigo-300">
+                  YOU (Miner)
+                </span>
                 <span className="text-lg font-mono font-bold text-white mt-1">
                   {Math.round(playerProgress)}%
                 </span>
                 <p className="text-[10px] text-indigo-400 font-mono mt-1">
-                  HASHRATE: <span className="font-bold">{hashRate.toFixed(1)} MH/s</span>
+                  HASHRATE:{" "}
+                  <span className="font-bold">{hashRate.toFixed(1)} MH/s</span>
                 </p>
-                
+
                 {/* Progress bar */}
                 <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden mt-3 border border-slate-800">
-                  <div 
-                    className="bg-indigo-500 h-full rounded-full transition-all duration-100" 
+                  <div
+                    className="bg-indigo-500 h-full rounded-full transition-all duration-100"
                     style={{ width: `${playerProgress}%` }}
                   />
                 </div>
@@ -886,18 +982,23 @@ export default function ChallengeModal({
               {/* Opponent stats */}
               <div className="bg-slate-950 border border-slate-850 rounded-2xl p-4 flex flex-col items-center">
                 <span className="text-2xl mb-1">{competitor.avatar}</span>
-                <span className="text-xs font-bold text-slate-300">{competitor.username}</span>
+                <span className="text-xs font-bold text-slate-300">
+                  {competitor.username}
+                </span>
                 <span className="text-lg font-mono font-bold text-white mt-1">
                   {Math.round(opponentProgress)}%
                 </span>
                 <p className="text-[10px] text-red-400 font-mono mt-1">
-                  HASHRATE: <span className="font-bold">{(competitor.level * 20 + 20).toFixed(1)} MH/s</span>
+                  HASHRATE:{" "}
+                  <span className="font-bold">
+                    {(competitor.level * 20 + 20).toFixed(1)} MH/s
+                  </span>
                 </p>
 
                 {/* Progress bar */}
                 <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden mt-3 border border-slate-800">
-                  <div 
-                    className="bg-red-500 h-full rounded-full transition-all duration-100" 
+                  <div
+                    className="bg-red-500 h-full rounded-full transition-all duration-100"
                     style={{ width: `${opponentProgress}%` }}
                   />
                 </div>
@@ -910,7 +1011,9 @@ export default function ChallengeModal({
                 <Terminal className="w-4 h-4" />
               </div>
               <div className="font-mono text-[10px] overflow-hidden truncate">
-                <p className="text-slate-500 font-bold uppercase">SHA256 HASHER ENGINE</p>
+                <p className="text-slate-500 font-bold uppercase">
+                  SHA256 HASHER ENGINE
+                </p>
                 <p className="text-indigo-300 truncate mt-0.5">{currentHash}</p>
               </div>
             </div>
@@ -922,8 +1025,12 @@ export default function ChallengeModal({
             >
               <div className="absolute inset-0 rounded-full border-2 border-indigo-400/20 animate-ping group-hover:block hidden" />
               <Zap className="w-8 h-8 text-yellow-300 animate-pulse" />
-              <span className="text-sm tracking-wider uppercase font-black">MINE</span>
-              <span className="text-[9px] font-mono text-indigo-200">CLICK FAST!</span>
+              <span className="text-sm tracking-wider uppercase font-black">
+                MINE
+              </span>
+              <span className="text-[9px] font-mono text-indigo-200">
+                CLICK FAST!
+              </span>
             </button>
           </div>
         )}
@@ -943,7 +1050,11 @@ export default function ChallengeModal({
                     VICTORY IS YOURS!
                   </h2>
                   <p className="text-xs text-slate-400">
-                    You completely outclassed <span className="font-bold text-slate-200">{competitor.username}</span> in the Arena!
+                    You completely outclassed{" "}
+                    <span className="font-bold text-slate-200">
+                      {competitor.username}
+                    </span>{" "}
+                    in the Arena!
                   </p>
                 </div>
               </>
@@ -957,7 +1068,11 @@ export default function ChallengeModal({
                     DEFEAT
                   </h2>
                   <p className="text-xs text-slate-400">
-                    <span className="font-bold text-slate-200">{competitor.username}</span> claims the victory in this clash. Take it as an opportunity to sharpen your knowledge!
+                    <span className="font-bold text-slate-200">
+                      {competitor.username}
+                    </span>{" "}
+                    claims the victory in this clash. Take it as an opportunity
+                    to sharpen your knowledge!
                   </p>
                 </div>
               </>
@@ -967,23 +1082,29 @@ export default function ChallengeModal({
             <div className="bg-slate-950 border border-slate-850 rounded-2xl p-6 w-full max-w-sm space-y-4">
               <div className="flex items-center justify-between font-mono text-xs text-slate-500 border-b border-slate-900 pb-2.5">
                 <span>DUEL ARENA RESULTS</span>
-                <span>ID: {Math.random().toString(36).substr(2, 6).toUpperCase()}</span>
+                <span>
+                  ID: {Math.random().toString(36).substr(2, 6).toUpperCase()}
+                </span>
               </div>
 
               <div className="flex justify-between items-center">
                 <span className="text-xs text-slate-400">Winner:</span>
-                <span className="text-xs font-bold text-slate-200">{winnerName}</span>
+                <span className="text-xs font-bold text-slate-200">
+                  {winnerName}
+                </span>
               </div>
 
               <div className="flex justify-between items-center border-t border-slate-900 pt-2.5">
                 <span className="text-xs text-slate-400">XP Change:</span>
-                <span className={`text-sm font-black font-mono ${xpChange > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                <span
+                  className={`text-sm font-black font-mono ${xpChange > 0 ? "text-emerald-400" : "text-red-400"}`}
+                >
                   {xpChange > 0 ? `+${xpChange}` : xpChange} XP
                 </span>
               </div>
             </div>
 
-            <button 
+            <button
               onClick={handleClose}
               className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-3.5 px-8 rounded-2xl transition-all duration-300 w-full max-w-xs shadow-lg shadow-indigo-500/25"
             >
@@ -1006,7 +1127,9 @@ export default function ChallengeModal({
                 CHALLENGE BROADCASTED! ⚔️
               </h2>
               <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                Your score has been sealed in Firestore! We've sent a real-time notification to <strong className="text-white">{competitor.username}</strong>.
+                Your score has been sealed in Firestore! We've sent a real-time
+                notification to{" "}
+                <strong className="text-white">{competitor.username}</strong>.
               </p>
             </div>
 
@@ -1023,17 +1146,23 @@ export default function ChallengeModal({
               </div>
               <div className="flex justify-between">
                 <span>Game Type:</span>
-                <span className="text-indigo-300 uppercase">{selectedChallenge === "quiz" ? "Bug Hunt (Quiz)" : "Hash Race"}</span>
+                <span className="text-indigo-300 uppercase">
+                  {selectedChallenge === "quiz"
+                    ? "Bug Hunt (Quiz)"
+                    : "Hash Race"}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Your Secured Score:</span>
                 <span className="text-emerald-400 font-bold">
-                  {selectedChallenge === "quiz" ? `${quizScore}/3 correct` : `${(raceStartTime ? (Date.now() - raceStartTime) / 1000 : 0).toFixed(2)}s`}
+                  {selectedChallenge === "quiz"
+                    ? `${quizScore}/3 correct`
+                    : `${(raceStartTime ? (Date.now() - raceStartTime) / 1000 : 0).toFixed(2)}s`}
                 </span>
               </div>
             </div>
 
-            <button 
+            <button
               onClick={handleClose}
               className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-3.5 px-8 rounded-2xl transition-all duration-300 w-full max-w-xs shadow-lg shadow-indigo-500/25"
             >
@@ -1041,7 +1170,6 @@ export default function ChallengeModal({
             </button>
           </div>
         )}
-
       </div>
     </div>
   );

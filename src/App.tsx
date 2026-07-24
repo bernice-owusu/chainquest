@@ -1,6 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Compass, Cpu, Trophy, User, Sparkles, Flame, Coins, ShieldAlert, BookOpen, AlertCircle, RefreshCw, X, ChevronRight, HelpCircle, LogOut, Award, Settings, Cloud
+import {
+  Compass,
+  Cpu,
+  Trophy,
+  User,
+  Sparkles,
+  Flame,
+  Coins,
+  ShieldAlert,
+  BookOpen,
+  AlertCircle,
+  RefreshCw,
+  X,
+  ChevronRight,
+  HelpCircle,
+  LogOut,
+  Award,
+  Settings,
+  Cloud,
 } from "lucide-react";
 import WorldMap, { ZONES } from "./components/WorldMap";
 import Lessons from "./components/Lessons";
@@ -28,7 +45,7 @@ export function getCurrentWeekDates(): string[] {
   const dayOfWeek = today.getDay(); // 0 (Sun) to 6 (Sat)
   const sunday = new Date(today);
   sunday.setDate(today.getDate() - dayOfWeek);
-  
+
   for (let i = 0; i < 7; i++) {
     const day = new Date(sunday);
     day.setDate(sunday.getDate() + i);
@@ -37,14 +54,17 @@ export function getCurrentWeekDates(): string[] {
   return dates;
 }
 
-export function getWeeklyStreakStatus(streak: number, weeklyActivity?: string[]) {
+export function getWeeklyStreakStatus(
+  streak: number,
+  weeklyActivity?: string[],
+) {
   const days = ["S", "M", "T", "W", "T", "F", "S"];
   const today = new Date();
   const todayIdx = today.getDay(); // 0-6
   const status = Array(7).fill(false);
-  
+
   const currentWeek = getCurrentWeekDates();
-  
+
   for (let i = 0; i < 7; i++) {
     const dateStr = currentWeek[i];
     if (weeklyActivity && weeklyActivity.includes(dateStr)) {
@@ -57,7 +77,7 @@ export function getWeeklyStreakStatus(streak: number, weeklyActivity?: string[])
       }
     }
   }
-  
+
   const isPerfectStreak = status.every((v) => v === true);
   return { days, status, todayIdx, isPerfectStreak };
 }
@@ -71,14 +91,23 @@ export default function App() {
   const [avatarInput, setAvatarInput] = useState(AVATARS[0]);
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"map" | "leaderboard" | "profile">("map");
+  const [activeTab, setActiveTab] = useState<"map" | "leaderboard" | "profile">(
+    "map",
+  );
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
   const [isTutorOpen, setIsTutorOpen] = useState(false);
-  const [drawerTab, setDrawerTab] = useState<"workspace" | "tutor">("workspace");
-  const [celebration, setCelebration] = useState<{ title: string; desc: string; xpBonus: number; badgeName?: string } | null>(null);
+  const [drawerTab, setDrawerTab] = useState<"workspace" | "tutor">(
+    "workspace",
+  );
+  const [celebration, setCelebration] = useState<{
+    title: string;
+    desc: string;
+    xpBonus: number;
+    badgeName?: string;
+  } | null>(null);
   const [isTourActive, setIsTourActive] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
+
   // Incoming duel states
   const [incomingChallenge, setIncomingChallenge] = useState<{
     id: string;
@@ -95,9 +124,13 @@ export default function App() {
     challengerScore?: number;
   } | null>(null);
 
-  const [theme, setTheme] = useState<"elegant-cyan" | "cyber-green" | "neon-purple" | "amber-gold">(() => {
+  const [theme, setTheme] = useState<
+    "elegant-cyan" | "cyber-green" | "neon-purple" | "amber-gold"
+  >(() => {
     try {
-      return (localStorage.getItem("satoshi_active_theme") as any) || "elegant-cyan";
+      return (
+        (localStorage.getItem("satoshi_active_theme") as any) || "elegant-cyan"
+      );
     } catch {
       return "elegant-cyan";
     }
@@ -114,31 +147,40 @@ export default function App() {
   useEffect(() => {
     const handleChallengesChange = () => {
       try {
-        setChallengesDisabled(localStorage.getItem("chainquest_challenges_disabled") === "true");
+        setChallengesDisabled(
+          localStorage.getItem("chainquest_challenges_disabled") === "true",
+        );
       } catch {}
     };
-    window.addEventListener("chainquest_challenges_changed", handleChallengesChange);
+    window.addEventListener(
+      "chainquest_challenges_changed",
+      handleChallengesChange,
+    );
     return () => {
-      window.removeEventListener("chainquest_challenges_changed", handleChallengesChange);
+      window.removeEventListener(
+        "chainquest_challenges_changed",
+        handleChallengesChange,
+      );
     };
   }, []);
 
   // Real-time Firestore Duel Polling Effect
   useEffect(() => {
     if (!profile) return;
-    const dbId = profile.isRealUser && profile.accountUsername
-      ? profile.accountUsername.trim().toLowerCase()
-      : `guest_${profile.userId}`;
+    const dbId =
+      profile.isRealUser && profile.accountUsername
+        ? profile.accountUsername.trim().toLowerCase()
+        : `guest_${profile.userId}`;
 
     // Helper to fetch pending duels
     const checkPendingDuels = () => {
       fetch(`/api/duels/pending?targetId=${dbId}`)
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
           if (data.success && data.duels && data.duels.length > 0) {
             // Pick the first pending duel to alert the user!
             const firstDuel = data.duels[0];
-            
+
             // Check if we already have a popup open, or if we declined it or muted alerts
             if (!incomingChallenge && !activeDuel && !challengesDisabled) {
               const competitor: Competitor = {
@@ -147,28 +189,28 @@ export default function App() {
                 avatar: firstDuel.challengerAvatar || "👨‍💻",
                 xp: 0,
                 level: 1,
-                title: "Blockchain Explorer"
+                title: "Blockchain Explorer",
               };
-              
+
               setIncomingChallenge({
                 id: firstDuel.id,
                 competitor,
                 challengeType: firstDuel.challengeType,
-                challengerScore: firstDuel.challengerScore
+                challengerScore: firstDuel.challengerScore,
               });
-              
+
               playSound("level_up");
             }
           }
         })
-        .catch(err => console.error("Error polling pending duels:", err));
+        .catch((err) => console.error("Error polling pending duels:", err));
     };
 
     // Helper to fetch completed duels (to show results)
     const checkCompletedDuels = () => {
       fetch(`/api/duels/results?userId=${dbId}`)
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
           const list = data.completedDuels || data.duels;
           if (data.success && list && list.length > 0) {
             // Find completed duels that the user has not acknowledged yet
@@ -180,19 +222,30 @@ export default function App() {
             if (unacknowledged.length > 0) {
               const latest = unacknowledged[0];
               const isWinner = latest.winnerId === dbId;
-              const isTie = latest.winnerId === null || latest.winnerId === "Tie";
-              
+              const isTie =
+                latest.winnerId === null || latest.winnerId === "Tie";
+
               // Show notification toast & popup
               playSound(isWinner ? "level_up" : "click");
-              
-              const opponentName = latest.challengerId === dbId ? (latest.targetName || latest.targetId) : latest.challengerName;
-              const typeLabel = latest.challengeType === "quiz" ? "Bug Hunt (Quiz)" : "Hash Race";
-              const title = isWinner ? "🏆 DUEL VICTORY!" : isTie ? "🤝 DUEL TIE MATCH!" : "⚔️ DUEL DEFEAT";
+
+              const opponentName =
+                latest.challengerId === dbId
+                  ? latest.targetName || latest.targetId
+                  : latest.challengerName;
+              const typeLabel =
+                latest.challengeType === "quiz"
+                  ? "Bug Hunt (Quiz)"
+                  : "Hash Race";
+              const title = isWinner
+                ? "🏆 DUEL VICTORY!"
+                : isTie
+                  ? "🤝 DUEL TIE MATCH!"
+                  : "⚔️ DUEL DEFEAT";
               const desc = isWinner
                 ? `Fantastic job! Your duel against ${opponentName} in ${typeLabel} has been resolved! You won and secured XP stakes!`
                 : isTie
-                ? `Well played! Your duel against ${opponentName} in ${typeLabel} ended in a tie!`
-                : `You fought well! Your duel against ${opponentName} in ${typeLabel} is complete. They secured the victory.`;
+                  ? `Well played! Your duel against ${opponentName} in ${typeLabel} ended in a tie!`
+                  : `You fought well! Your duel against ${opponentName} in ${typeLabel} is complete. They secured the victory.`;
 
               setCelebration({
                 title,
@@ -210,13 +263,13 @@ export default function App() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   duelId: latest.id,
-                  userId: dbId
-                })
-              }).catch(e => console.error("Error acknowledging duel:", e));
+                  userId: dbId,
+                }),
+              }).catch((e) => console.error("Error acknowledging duel:", e));
             }
           }
         })
-        .catch(err => console.error("Error polling duel results:", err));
+        .catch((err) => console.error("Error polling duel results:", err));
     };
 
     // Initial check
@@ -239,7 +292,7 @@ export default function App() {
         "Working Offline 📡",
         "info",
         "Network connection lost. Your quest progress & XP are preserved locally.",
-        5000
+        5000,
       );
     };
 
@@ -248,7 +301,7 @@ export default function App() {
         "Back Online! ⚡",
         "success",
         "Network connection restored. Syncing local state with ChainQuest servers.",
-        4000
+        4000,
       );
     };
 
@@ -268,7 +321,11 @@ export default function App() {
   // Apply theme class to document element
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove("theme-cyber-green", "theme-neon-purple", "theme-amber-gold");
+    root.classList.remove(
+      "theme-cyber-green",
+      "theme-neon-purple",
+      "theme-amber-gold",
+    );
     if (theme !== "elegant-cyan") {
       root.classList.add(`theme-${theme}`);
     }
@@ -292,19 +349,17 @@ export default function App() {
     playSound("click");
   }, [activeTab]);
 
-  // Auto pop-up Satoshi AI when a quest workspace is opened
-  useEffect(() => {
-    if (activeZoneId) {
-      setIsTutorOpen(true);
-    }
-  }, [activeZoneId]);
-
   // Confetti effect on level up/milestone celebration
   useEffect(() => {
     if (celebration) {
       const duration = 3 * 1000;
       const animationEnd = Date.now() + duration;
-      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1000 };
+      const defaults = {
+        startVelocity: 30,
+        spread: 360,
+        ticks: 60,
+        zIndex: 1000,
+      };
 
       const randomInRange = (min: number, max: number) => {
         return Math.random() * (max - min) + min;
@@ -321,12 +376,12 @@ export default function App() {
         confetti({
           ...defaults,
           particleCount,
-          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
         });
         confetti({
           ...defaults,
           particleCount,
-          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
         });
       }, 250);
 
@@ -342,9 +397,12 @@ export default function App() {
         const parsed = JSON.parse(stored) as UserProfile;
         const currentDateStr = new Date().toISOString().split("T")[0];
         let changed = false;
-        
+
         // Recalculate level based on completed lessons
-        const calculatedLvl = Math.max(1, 1 + (parsed.completedLessons || []).length);
+        const calculatedLvl = Math.max(
+          1,
+          1 + (parsed.completedLessons || []).length,
+        );
         if (parsed.level !== calculatedLvl) {
           parsed.level = calculatedLvl;
           changed = true;
@@ -354,8 +412,9 @@ export default function App() {
         const currentWeek = getCurrentWeekDates();
         const activity = parsed.weeklyActivity || [];
         if (!activity.includes(currentDateStr)) {
-          const newActivity = Array.from(new Set([...activity, currentDateStr]))
-            .filter((d) => d >= currentWeek[0]);
+          const newActivity = Array.from(
+            new Set([...activity, currentDateStr]),
+          ).filter((d) => d >= currentWeek[0]);
           parsed.weeklyActivity = newActivity;
           changed = true;
         } else {
@@ -366,7 +425,10 @@ export default function App() {
           }
         }
 
-        if (!parsed.dailyMissions || parsed.lastMissionsDate !== currentDateStr) {
+        if (
+          !parsed.dailyMissions ||
+          parsed.lastMissionsDate !== currentDateStr
+        ) {
           parsed.dailyMissions = generateDailyMissions(calculatedLvl);
           parsed.lastMissionsDate = currentDateStr;
           // Award a bonus lootbox for maintaining/starting a new day streak
@@ -397,7 +459,11 @@ export default function App() {
         setProfile(parsed);
 
         // Background sync refresh on startup to automatically recognize and update real users
-        if (parsed.isRealUser && parsed.accountUsername && parsed.accountPassword) {
+        if (
+          parsed.isRealUser &&
+          parsed.accountUsername &&
+          parsed.accountPassword
+        ) {
           fetch("/api/users/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -420,8 +486,13 @@ export default function App() {
                   isRealUser: true,
                 };
                 setProfile(refreshedProfile);
-                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(refreshedProfile));
-                console.log("[ChainQuest] Auto-recognized user and synced remote progress on load.");
+                localStorage.setItem(
+                  LOCAL_STORAGE_KEY,
+                  JSON.stringify(refreshedProfile),
+                );
+                console.log(
+                  "[ChainQuest] Auto-recognized user and synced remote progress on load.",
+                );
               }
             })
             .catch((err) => {
@@ -444,12 +515,13 @@ export default function App() {
     const activity = newProfile.weeklyActivity || [];
     let updatedActivity = activity;
     if (!activity.includes(currentDateStr)) {
-      updatedActivity = Array.from(new Set([...activity, currentDateStr]))
-        .filter((d) => d >= currentWeek[0]);
+      updatedActivity = Array.from(
+        new Set([...activity, currentDateStr]),
+      ).filter((d) => d >= currentWeek[0]);
     } else {
       updatedActivity = activity.filter((d) => d >= currentWeek[0]);
     }
-    
+
     const finalizedProfile = {
       ...newProfile,
       weeklyActivity: updatedActivity,
@@ -459,7 +531,11 @@ export default function App() {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(finalizedProfile));
 
     // Auto-sync real user profiles to the server in the background
-    if (finalizedProfile.isRealUser && finalizedProfile.accountUsername && finalizedProfile.accountPassword) {
+    if (
+      finalizedProfile.isRealUser &&
+      finalizedProfile.accountUsername &&
+      finalizedProfile.accountPassword
+    ) {
       fetch("/api/users/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -467,7 +543,7 @@ export default function App() {
           username: finalizedProfile.accountUsername,
           password: finalizedProfile.accountPassword,
           profile: finalizedProfile,
-        })
+        }),
       }).catch((e) => console.error("Background auto-sync failed:", e));
     } else if (finalizedProfile.userId) {
       // Auto-sync guest profiles in the background to the server
@@ -478,7 +554,7 @@ export default function App() {
           userId: finalizedProfile.userId,
           username: finalizedProfile.username,
           profile: finalizedProfile,
-        })
+        }),
       }).catch((e) => console.error("Background guest-sync failed:", e));
     }
   };
@@ -525,9 +601,10 @@ export default function App() {
     // Calculate level based on completed lessons
     const newLvl = Math.max(1, 1 + (profile.completedLessons || []).length);
     const hasLeveledUp = newLvl > profile.level;
-    
+
     const todayStr = new Date().toISOString().split("T")[0];
-    let dailyCount = profile.lastDuelDate === todayStr ? (profile.dailyDuelsCount || 0) : 0;
+    let dailyCount =
+      profile.lastDuelDate === todayStr ? profile.dailyDuelsCount || 0 : 0;
     if (isDuel) {
       dailyCount += 1;
     }
@@ -548,23 +625,26 @@ export default function App() {
       setCelebration({
         title: `LEVEL UP TO LVL ${newLvl}! 🎉`,
         desc: `Fabulous work in the sandbox! You have climbed to level ${newLvl} as a smart crypto practitioner.`,
-        xpBonus: xpAmount
+        xpBonus: xpAmount,
       });
     }
   };
 
   const handleResolveDuel = (duelId: string, xpChange: number) => {
     if (!profile) return;
-    
+
     // Remove the resolved duel from activeDuels
-    const updatedDuels = (profile.activeDuels || []).filter(d => d.id !== duelId);
-    
+    const updatedDuels = (profile.activeDuels || []).filter(
+      (d) => d.id !== duelId,
+    );
+
     const newXp = Math.max(0, profile.xp + xpChange);
     const newLvl = Math.max(1, 1 + (profile.completedLessons || []).length);
     const hasLeveledUp = newLvl > profile.level;
-    
+
     const todayStr = new Date().toISOString().split("T")[0];
-    let dailyCount = profile.lastDuelDate === todayStr ? (profile.dailyDuelsCount || 0) : 0;
+    let dailyCount =
+      profile.lastDuelDate === todayStr ? profile.dailyDuelsCount || 0 : 0;
     dailyCount += 1;
 
     saveProfile({
@@ -575,13 +655,17 @@ export default function App() {
       lastDuelDate: todayStr,
       dailyDuelsCount: dailyCount,
     });
-    
+
     if (xpChange > 0) {
       showToast(`+${xpChange} XP Gained! ⚡`, "xp", `Total: ${newXp} XP`);
     } else if (xpChange < 0) {
-      showToast(`${xpChange} XP stakes adjusted! 🛡️`, "info", `Total: ${newXp} XP`);
+      showToast(
+        `${xpChange} XP stakes adjusted! 🛡️`,
+        "info",
+        `Total: ${newXp} XP`,
+      );
     }
-    
+
     if (hasLeveledUp) {
       playSound("level_up");
       showToast("Level Up! 🎉", "achievement", `You reached Level ${newLvl}!`);
@@ -594,13 +678,23 @@ export default function App() {
   };
 
   const handleProgressMission = (
-    type: "sandbox_swap" | "sandbox_mine" | "sandbox_sign" | "sandbox_keypair" | "wallet_seed" | "contract_deploy" | "ai_ask" | "quest_complete",
-    amount = 1
+    type:
+      | "sandbox_swap"
+      | "sandbox_mine"
+      | "sandbox_sign"
+      | "sandbox_keypair"
+      | "wallet_seed"
+      | "contract_deploy"
+      | "ai_ask"
+      | "quest_complete",
+    amount = 1,
   ) => {
     if (!profile) return;
-    
+
     const currentDateStr = new Date().toISOString().split("T")[0];
-    let updatedMissions = profile.dailyMissions ? [...profile.dailyMissions] : [];
+    let updatedMissions = profile.dailyMissions
+      ? [...profile.dailyMissions]
+      : [];
     let stateChanged = false;
     let xpBonusToAward = 0;
     let completedMissionTitle = "";
@@ -651,13 +745,23 @@ export default function App() {
       if (xpBonusToAward > 0) {
         if (hasLeveledUp) {
           playSound("level_up");
-          showToast("Level Up! 🎉", "achievement", `You reached Level ${newLvl}!`);
+          showToast(
+            "Level Up! 🎉",
+            "achievement",
+            `You reached Level ${newLvl}!`,
+          );
         } else {
           playSound("mission_complete");
         }
-        showToast("Daily Mission Complete! 🎯", "success", `${completedMissionTitle} (+${xpBonusToAward} XP)`);
+        showToast(
+          "Daily Mission Complete! 🎯",
+          "success",
+          `${completedMissionTitle} (+${xpBonusToAward} XP)`,
+        );
         setCelebration({
-          title: hasLeveledUp ? `LEVEL UP & DAILY MISSION COMPLETE! 🎯` : "DAILY MISSION COMPLETE! 🎯",
+          title: hasLeveledUp
+            ? `LEVEL UP & DAILY MISSION COMPLETE! 🎯`
+            : "DAILY MISSION COMPLETE! 🎯",
           desc: hasLeveledUp
             ? `Fantastic double score! You completed "${completedMissionTitle}" daily mission, claiming +${xpBonusToAward} XP and reaching level ${newLvl}!`
             : `Sensational job! You cleared the daily task: "${completedMissionTitle}" and earned +${xpBonusToAward} XP! Keep up the daily streak!`,
@@ -715,7 +819,9 @@ export default function App() {
 
     // Process daily mission completion for "quest_complete"
     const currentDateStr = new Date().toISOString().split("T")[0];
-    let updatedMissions = profile.dailyMissions ? [...profile.dailyMissions] : [];
+    let updatedMissions = profile.dailyMissions
+      ? [...profile.dailyMissions]
+      : [];
     let stateChanged = false;
     let missionBonusXp = 0;
     let completedMissionTitle = "";
@@ -747,6 +853,17 @@ export default function App() {
     const finalLvl = Math.max(1, 1 + completed.length);
     const finalHasLeveledUp = finalLvl > profile.level;
 
+    // If user leveled up, regenerate incomplete daily missions tailored to their new level
+    if (finalHasLeveledUp) {
+      const newLevelMissions = generateDailyMissions(finalLvl);
+      updatedMissions = newLevelMissions.map((nm) => {
+        const completedMatch = updatedMissions.find(
+          (m) => m.type === nm.type && m.isCompleted,
+        );
+        return completedMatch ? completedMatch : nm;
+      });
+    }
+
     saveProfile({
       ...profile,
       completedLessons: completed,
@@ -771,30 +888,49 @@ export default function App() {
     }
 
     // Dynamic celebration lookup
-    const zoneName = ZONES.find(z => z.id === activeZoneId)?.name || activeZoneId;
-    const badge = BADGES.find(b => b.id === badgeId);
+    const zoneName =
+      ZONES.find((z) => z.id === activeZoneId)?.name || activeZoneId;
+    const badge = BADGES.find((b) => b.id === badgeId);
 
     // Trigger feedback toasts
-    showToast("Quest Completed! 🏆", "success", `Cleared: ${zoneName} (+${xpReward} XP)`);
+    showToast(
+      "Quest Completed! 🏆",
+      "success",
+      `Cleared: ${zoneName} (+${xpReward} XP)`,
+    );
     if (badge) {
-      showToast("New Badge Unlocked! 🏅", "achievement", `Earned: ${badge.title}`);
+      showToast(
+        "New Badge Unlocked! 🏅",
+        "achievement",
+        `Earned: ${badge.title}`,
+      );
     }
     if (missionBonusXp > 0) {
-      showToast("Daily Mission Complete! 🎯", "success", `${completedMissionTitle} (+${missionBonusXp} XP)`);
+      showToast(
+        "Daily Mission Complete! 🎯",
+        "success",
+        `${completedMissionTitle} (+${missionBonusXp} XP)`,
+      );
     }
     if (finalHasLeveledUp) {
-      showToast("Level Up! 🎉", "achievement", `You reached Level ${finalLvl}!`);
+      showToast(
+        "Level Up! 🎉",
+        "achievement",
+        `You reached Level ${finalLvl}!`,
+      );
     }
 
     setCelebration({
-      title: finalHasLeveledUp 
-        ? `LEVEL UP TO LVL ${finalLvl}! 👑` 
-        : (missionBonusXp > 0 ? "QUEST & DAILY MISSION CLEARED! 🏆" : "QUEST CLEARED! 🏆"),
-      desc: finalHasLeveledUp 
-        ? `Sensational! You completed the "${zoneName}" quest${missionBonusXp > 0 ? ` and your daily task` : ''} and advanced to level ${finalLvl}. Keep scaling the Island!`
-        : `Congratulations! You successfully finished the challenges of the "${zoneName}" on Blockchain Island.${missionBonusXp > 0 ? ` You also completed your daily mission "${completedMissionTitle}" for an extra +${missionBonusXp} XP!` : ''}`,
+      title: finalHasLeveledUp
+        ? `LEVEL UP TO LVL ${finalLvl}! 👑`
+        : missionBonusXp > 0
+          ? "QUEST & DAILY MISSION CLEARED! 🏆"
+          : "QUEST CLEARED! 🏆",
+      desc: finalHasLeveledUp
+        ? `Sensational! You completed the "${zoneName}" quest${missionBonusXp > 0 ? ` and your daily task` : ""} and advanced to level ${finalLvl}. Keep scaling the Island!`
+        : `Congratulations! You successfully finished the challenges of the "${zoneName}" on Blockchain Island.${missionBonusXp > 0 ? ` You also completed your daily mission "${completedMissionTitle}" for an extra +${missionBonusXp} XP!` : ""}`,
       xpBonus: xpReward + missionBonusXp,
-      badgeName: badge?.title
+      badgeName: badge?.title,
     });
   };
 
@@ -808,7 +944,9 @@ export default function App() {
 
     // Process daily mission completion for "quest_complete"
     const currentDateStr = new Date().toISOString().split("T")[0];
-    let updatedMissions = profile.dailyMissions ? [...profile.dailyMissions] : [];
+    let updatedMissions = profile.dailyMissions
+      ? [...profile.dailyMissions]
+      : [];
     let stateChanged = false;
     let missionBonusXp = 0;
     let completedMissionTitle = "";
@@ -839,7 +977,7 @@ export default function App() {
     const finalXp = newXp + missionBonusXp;
     const finalLvl = Math.max(1, 1 + (profile.completedLessons || []).length);
     const finalHasLeveledUp = finalLvl > profile.level;
-    
+
     saveProfile({
       ...profile,
       completedQuests: quests,
@@ -857,31 +995,53 @@ export default function App() {
     }
 
     // Format display text nicely
-    const formatName = questId.replace("ach_", "").split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    const formatName = questId
+      .replace("ach_", "")
+      .split("_")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
 
     // Trigger toasts
-    showToast("Milestone Unlocked! 🎁", "achievement", `Completed: ${formatName} (+${xpReward} XP)`);
+    showToast(
+      "Milestone Unlocked! 🎁",
+      "achievement",
+      `Completed: ${formatName} (+${xpReward} XP)`,
+    );
     if (missionBonusXp > 0) {
-      showToast("Daily Mission Complete! 🎯", "success", `${completedMissionTitle} (+${missionBonusXp} XP)`);
+      showToast(
+        "Daily Mission Complete! 🎯",
+        "success",
+        `${completedMissionTitle} (+${missionBonusXp} XP)`,
+      );
     }
     if (finalHasLeveledUp) {
-      showToast("Level Up! 🎉", "achievement", `You reached Level ${finalLvl}!`);
+      showToast(
+        "Level Up! 🎉",
+        "achievement",
+        `You reached Level ${finalLvl}!`,
+      );
     }
 
     setCelebration({
-      title: finalHasLeveledUp 
-        ? `LEVEL UP & MILESTONE CLEARED! 🚀` 
-        : (missionBonusXp > 0 ? "MILESTONE & DAILY MISSION CLEARED! 🎯" : "MILESTONE CLAIMED! 🎁"),
+      title: finalHasLeveledUp
+        ? `LEVEL UP & MILESTONE CLEARED! 🚀`
+        : missionBonusXp > 0
+          ? "MILESTONE & DAILY MISSION CLEARED! 🎯"
+          : "MILESTONE CLAIMED! 🎁",
       desc: finalHasLeveledUp
-        ? `Double Reward! You claimed "${formatName}" milestone${missionBonusXp > 0 ? ` and your daily task` : ''} which pushed you to level ${finalLvl}!`
-        : `Excellent work! You claimed the "${formatName}" bonus milestone reward successfully.${missionBonusXp > 0 ? ` You also completed your daily mission "${completedMissionTitle}" for an extra +${missionBonusXp} XP!` : ''}`,
-      xpBonus: xpReward + missionBonusXp
+        ? `Double Reward! You claimed "${formatName}" milestone${missionBonusXp > 0 ? ` and your daily task` : ""} which pushed you to level ${finalLvl}!`
+        : `Excellent work! You claimed the "${formatName}" bonus milestone reward successfully.${missionBonusXp > 0 ? ` You also completed your daily mission "${completedMissionTitle}" for an extra +${missionBonusXp} XP!` : ""}`,
+      xpBonus: xpReward + missionBonusXp,
     });
   };
 
-  const handleUpdateProfile = (newUsername: string, newAvatar: string, additional?: Partial<UserProfile>) => {
+  const handleUpdateProfile = (
+    newUsername: string,
+    newAvatar: string,
+    additional?: Partial<UserProfile>,
+  ) => {
     if (!profile) return;
-    
+
     let finalXp = profile.xp;
     if (additional && additional.xp !== undefined) {
       finalXp = additional.xp;
@@ -891,10 +1051,10 @@ export default function App() {
     if (additional && additional.completedLessons !== undefined) {
       finalCompleted = additional.completedLessons;
     }
-    
+
     let finalLvl = Math.max(1, 1 + finalCompleted.length);
     const hasLeveledUp = finalLvl > profile.level;
-    
+
     saveProfile({
       ...profile,
       username: newUsername,
@@ -903,10 +1063,14 @@ export default function App() {
       xp: finalXp,
       level: finalLvl,
     });
-    
+
     if (hasLeveledUp) {
       playSound("level_up");
-      showToast("Level Up! 🎉", "achievement", `You reached Level ${finalLvl}!`);
+      showToast(
+        "Level Up! 🎉",
+        "achievement",
+        `You reached Level ${finalLvl}!`,
+      );
       setCelebration({
         title: "LEVEL UP! 🎓",
         desc: `Congratulations! You leveled up to Level ${finalLvl} from your cosmetic discoveries!`,
@@ -918,7 +1082,11 @@ export default function App() {
   };
 
   const handleResetProgress = () => {
-    if (window.confirm("Are you sure you want to reset all your progress? This will delete your levels and badges permanently.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to reset all your progress? This will delete your levels and badges permanently.",
+      )
+    ) {
       localStorage.removeItem(LOCAL_STORAGE_KEY);
       setProfile(null);
       setIsNewUserModal(true);
@@ -930,11 +1098,13 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans" id="chainquest-app-root">
-      
+    <div
+      className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans"
+      id="chainquest-app-root"
+    >
       {/* Navbar */}
       <header className="bg-slate-900 border-b border-slate-800 px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between sticky top-0 z-50">
-        <div 
+        <div
           onClick={() => {
             if (profile) {
               setActiveTab("map");
@@ -951,7 +1121,9 @@ export default function App() {
             <h1 className="font-extrabold text-lg tracking-tight text-white flex items-center gap-1.5 animate-pulse-slow">
               ChainQuest
             </h1>
-            <p className="text-[10px] text-slate-500 tracking-wider uppercase font-mono">Gamified Blockchain Learning</p>
+            <p className="text-[10px] text-slate-500 tracking-wider uppercase font-mono">
+              Gamified Blockchain Learning
+            </p>
           </div>
         </div>
 
@@ -960,30 +1132,41 @@ export default function App() {
             {/* Quick stats indicators */}
             <div className="hidden sm:flex items-center gap-4 text-xs font-mono">
               {(() => {
-                const { days, status, todayIdx, isPerfectStreak } = getWeeklyStreakStatus(profile.streak, profile.weeklyActivity);
+                const { days, status, todayIdx, isPerfectStreak } =
+                  getWeeklyStreakStatus(profile.streak, profile.weeklyActivity);
                 return (
-                  <div 
+                  <div
                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border transition-all duration-500 ${
-                      isPerfectStreak 
-                        ? "bg-amber-500/10 border-amber-500/40 shadow-md shadow-amber-500/10 text-amber-300" 
+                      isPerfectStreak
+                        ? "bg-amber-500/10 border-amber-500/40 shadow-md shadow-amber-500/10 text-amber-300"
                         : "bg-slate-950/60 border-slate-800/80"
                     }`}
-                    title={isPerfectStreak ? "👑 Perfect 7/7 Weekly Streak!" : `${profile.streak}-Day Learning Streak!`}
+                    title={
+                      isPerfectStreak
+                        ? "👑 Perfect 7/7 Weekly Streak!"
+                        : `${profile.streak}-Day Learning Streak!`
+                    }
                   >
-                    <Flame className={`w-3.5 h-3.5 ${isPerfectStreak ? "text-amber-400 animate-bounce" : "text-orange-500 animate-pulse"}`} />
-                    {isPerfectStreak && <span className="text-[10px] font-bold text-amber-400 select-none">👑</span>}
+                    <Flame
+                      className={`w-3.5 h-3.5 ${isPerfectStreak ? "text-amber-400 animate-bounce" : "text-orange-500 animate-pulse"}`}
+                    />
+                    {isPerfectStreak && (
+                      <span className="text-[10px] font-bold text-amber-400 select-none">
+                        👑
+                      </span>
+                    )}
                     <div className="flex gap-0.5">
                       {days.map((day, idx) => {
                         const isActive = status[idx];
                         const isToday = idx === todayIdx;
                         return (
-                          <span 
+                          <span
                             key={idx}
                             className={`w-3.5 h-3.5 rounded flex items-center justify-center text-[7px] font-mono font-bold border transition-all ${
-                              isActive 
+                              isActive
                                 ? isPerfectStreak
-                                  ? "bg-gradient-to-tr from-amber-500 to-yellow-300 border-amber-400 text-slate-950 shadow-sm shadow-amber-500/10"
-                                  : "bg-gradient-to-tr from-orange-500 to-amber-400 border-orange-500 text-slate-950 shadow-sm shadow-orange-500/10"
+                                  ? "bg-linear-to-tr from-amber-500 to-yellow-300 border-amber-400 text-slate-950 shadow-sm shadow-amber-500/10"
+                                  : "bg-linear-to-tr from-orange-500 to-amber-400 border-orange-500 text-slate-950 shadow-sm shadow-orange-500/10"
                                 : isToday
                                   ? "bg-slate-900 border-indigo-500/50 text-indigo-400"
                                   : "bg-slate-900/60 border-slate-850 text-slate-500"
@@ -1005,7 +1188,7 @@ export default function App() {
                 LVL {profile.level}
               </div>
               {profile.isRealUser ? (
-                <div 
+                <div
                   className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded-xl text-emerald-400 text-[11px] font-bold select-none cursor-pointer hover:bg-emerald-500/15 transition-all"
                   title="All progress is safely backed up to the secure cloud!"
                   onClick={() => {
@@ -1021,9 +1204,13 @@ export default function App() {
                   onClick={() => {
                     playSound("click");
                     setActiveTab("profile");
-                    showToast("Secured Progress ☁️", "info", "Register an account in the Profile tab to enable cloud backup.");
+                    showToast(
+                      "Secured Progress ☁️",
+                      "info",
+                      "Register an account in the Profile tab to enable cloud backup.",
+                    );
                   }}
-                  className="flex items-center gap-1.5 bg-gradient-to-tr from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white px-2.5 py-1 rounded-xl text-[11px] font-bold border border-indigo-400/20 shadow-md shadow-indigo-500/10 active:scale-95 transition-all cursor-pointer animate-pulse-slow"
+                  className="flex items-center gap-1.5 bg-linear-to-tr from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white px-2.5 py-1 rounded-xl text-[11px] font-bold border border-indigo-400/20 shadow-md shadow-indigo-500/10 active:scale-95 transition-all cursor-pointer animate-pulse-slow"
                   title="Save your progress & levels to the cloud!"
                 >
                   <Cloud className="w-3.5 h-3.5 text-indigo-200" />
@@ -1031,19 +1218,21 @@ export default function App() {
                 </button>
               )}
             </div>
- 
-             {/* Profile Avatar Trigger */}
-             <div className="flex items-center gap-3 pl-4 border-l border-slate-850">
-               <span className="text-3xl">{profile.avatar}</span>
-               <div className="text-left hidden md:block">
-                 <p className="text-xs font-bold text-slate-200">{profile.username}</p>
-                 <p className="text-[10px] font-mono text-indigo-400 font-semibold tracking-wider uppercase">
-                   {profile.activeTitle || "Blockchain Explorer"}
-                 </p>
-               </div>
-             </div>
-           </div>
-         )}
+
+            {/* Profile Avatar Trigger */}
+            <div className="flex items-center gap-3 pl-4 border-l border-slate-850">
+              <span className="text-3xl">{profile.avatar}</span>
+              <div className="text-left hidden md:block">
+                <p className="text-xs font-bold text-slate-200">
+                  {profile.username}
+                </p>
+                <p className="text-[10px] font-mono text-indigo-400 font-semibold tracking-wider uppercase">
+                  {profile.activeTitle || "Blockchain Explorer"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Workspace Frame */}
@@ -1054,30 +1243,41 @@ export default function App() {
             {/* Mobile-only Quick Stats Bar */}
             <div className="flex sm:hidden items-center justify-between bg-slate-900 border border-slate-850/80 p-3 rounded-2xl text-xs font-mono">
               {(() => {
-                const { days, status, todayIdx, isPerfectStreak } = getWeeklyStreakStatus(profile.streak, profile.weeklyActivity);
+                const { days, status, todayIdx, isPerfectStreak } =
+                  getWeeklyStreakStatus(profile.streak, profile.weeklyActivity);
                 return (
-                  <div 
+                  <div
                     className={`flex items-center gap-1.5 px-2 py-1 rounded-xl border transition-all duration-500 ${
-                      isPerfectStreak 
-                        ? "bg-amber-500/10 border-amber-500/40 text-amber-300" 
+                      isPerfectStreak
+                        ? "bg-amber-500/10 border-amber-500/40 text-amber-300"
                         : "bg-slate-950/60 border-slate-800/80"
                     }`}
-                    title={isPerfectStreak ? "👑 Perfect 7/7 Weekly Streak!" : `${profile.streak}-Day Learning Streak!`}
+                    title={
+                      isPerfectStreak
+                        ? "👑 Perfect 7/7 Weekly Streak!"
+                        : `${profile.streak}-Day Learning Streak!`
+                    }
                   >
-                    <Flame className={`w-3.5 h-3.5 ${isPerfectStreak ? "text-amber-400 animate-bounce" : "text-orange-500 animate-pulse"}`} />
-                    {isPerfectStreak && <span className="text-[10px] font-bold text-amber-400 select-none">👑</span>}
+                    <Flame
+                      className={`w-3.5 h-3.5 ${isPerfectStreak ? "text-amber-400 animate-bounce" : "text-orange-500 animate-pulse"}`}
+                    />
+                    {isPerfectStreak && (
+                      <span className="text-[10px] font-bold text-amber-400 select-none">
+                        👑
+                      </span>
+                    )}
                     <div className="flex gap-0.5">
                       {days.map((day, idx) => {
                         const isActive = status[idx];
                         const isToday = idx === todayIdx;
                         return (
-                          <span 
+                          <span
                             key={idx}
                             className={`w-3.5 h-3.5 rounded flex items-center justify-center text-[7px] font-mono font-bold border transition-all ${
-                              isActive 
+                              isActive
                                 ? isPerfectStreak
-                                  ? "bg-gradient-to-tr from-amber-500 to-yellow-300 border-amber-400 text-slate-950 shadow-sm"
-                                  : "bg-gradient-to-tr from-orange-500 to-amber-400 border-orange-500 text-slate-950 shadow-sm"
+                                  ? "bg-linear-to-tr from-amber-500 to-yellow-300 border-amber-400 text-slate-950 shadow-sm"
+                                  : "bg-linear-to-tr from-orange-500 to-amber-400 border-orange-500 text-slate-950 shadow-sm"
                                 : isToday
                                   ? "bg-slate-900 border-indigo-500/50 text-indigo-400"
                                   : "bg-slate-900/60 border-slate-850 text-slate-500"
@@ -1099,7 +1299,7 @@ export default function App() {
                 LVL {profile.level}
               </div>
               {profile.isRealUser ? (
-                <div 
+                <div
                   className="flex items-center justify-center bg-emerald-500/10 border border-emerald-500/30 p-1.5 rounded-lg text-emerald-400 text-[11px] font-bold cursor-pointer hover:bg-emerald-500/15 transition-all"
                   title="Cloud Synced!"
                   onClick={() => {
@@ -1114,9 +1314,13 @@ export default function App() {
                   onClick={() => {
                     playSound("click");
                     setActiveTab("profile");
-                    showToast("Secured Progress ☁️", "info", "Register an account in the Profile tab to enable cloud backup.");
+                    showToast(
+                      "Secured Progress ☁️",
+                      "info",
+                      "Register an account in the Profile tab to enable cloud backup.",
+                    );
                   }}
-                  className="flex items-center justify-center bg-gradient-to-tr from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white p-1.5 rounded-lg text-[11px] font-bold border border-indigo-400/20 active:scale-95 transition-all animate-pulse-slow"
+                  className="flex items-center justify-center bg-linear-to-tr from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white p-1.5 rounded-lg text-[11px] font-bold border border-indigo-400/20 active:scale-95 transition-all animate-pulse-slow"
                   title="Backup progress to cloud!"
                 >
                   <Cloud className="w-3.5 h-3.5" />
@@ -1127,7 +1331,10 @@ export default function App() {
             {/* Tab navigation headers */}
             <div className="flex bg-slate-900 border border-slate-850 p-1 rounded-2xl w-full max-w-md mx-auto">
               <button
-                onClick={() => { setActiveTab("map"); setActiveZoneId(null); }}
+                onClick={() => {
+                  setActiveTab("map");
+                  setActiveZoneId(null);
+                }}
                 className={`flex-1 py-1.5 sm:py-2 text-[11px] sm:text-xs font-mono font-bold rounded-xl transition-all flex items-center justify-center gap-1 sm:gap-1.5 ${
                   activeTab === "map"
                     ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/5"
@@ -1139,7 +1346,10 @@ export default function App() {
                 <span className="inline min-[360px]:hidden">Map</span>
               </button>
               <button
-                onClick={() => { setActiveTab("leaderboard"); setActiveZoneId(null); }}
+                onClick={() => {
+                  setActiveTab("leaderboard");
+                  setActiveZoneId(null);
+                }}
                 className={`flex-1 py-1.5 sm:py-2 text-[11px] sm:text-xs font-mono font-bold rounded-xl transition-all flex items-center justify-center gap-1 sm:gap-1.5 ${
                   activeTab === "leaderboard"
                     ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/5"
@@ -1151,7 +1361,10 @@ export default function App() {
                 <span className="inline min-[360px]:hidden">Leader</span>
               </button>
               <button
-                onClick={() => { setActiveTab("profile"); setActiveZoneId(null); }}
+                onClick={() => {
+                  setActiveTab("profile");
+                  setActiveZoneId(null);
+                }}
                 className={`flex-1 py-1.5 sm:py-2 text-[11px] sm:text-xs font-mono font-bold rounded-xl transition-all flex items-center justify-center gap-1 sm:gap-1.5 ${
                   activeTab === "profile"
                     ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/5"
@@ -1167,8 +1380,8 @@ export default function App() {
             {/* Tab view rendering */}
             <div className="relative z-10 w-full max-w-6xl mx-auto space-y-6">
               {activeTab === "map" && (
-                <DailyMissions 
-                  missions={profile.dailyMissions} 
+                <DailyMissions
+                  missions={profile.dailyMissions}
                   lastMissionsDate={profile.lastMissionsDate}
                   onMissionClick={handleSelectMission}
                 />
@@ -1194,16 +1407,16 @@ export default function App() {
                     />
                   )}
                   {activeTab === "leaderboard" && (
-                    <Leaderboard 
-                      userProfile={profile} 
-                      onUpdateXP={handleUpdateXP} 
-                      onResolveDuel={handleResolveDuel} 
+                    <Leaderboard
+                      userProfile={profile}
+                      onUpdateXP={handleUpdateXP}
+                      onResolveDuel={handleResolveDuel}
                     />
                   )}
                   {activeTab === "profile" && (
-                    <Profile 
-                      userProfile={profile} 
-                      onClaimQuest={handleClaimQuest} 
+                    <Profile
+                      userProfile={profile}
+                      onClaimQuest={handleClaimQuest}
                       activeTheme={theme}
                       onThemeChange={setTheme}
                       onUpdateProfile={handleUpdateProfile}
@@ -1223,7 +1436,7 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 md:p-8 lg:p-12 animate-fade-in"
+                className="fixed inset-0 z-100 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 md:p-8 lg:p-12 animate-fade-in"
               >
                 {/* Learning drawer dialog panel - Centered, beautifully rounded, and responsive */}
                 <motion.div
@@ -1231,7 +1444,7 @@ export default function App() {
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 0.96, opacity: 0, y: 15 }}
                   transition={{ type: "spring", damping: 28, stiffness: 140 }}
-                  className="w-full max-w-5xl h-[92vh] sm:h-[88vh] max-h-[850px] bg-slate-900 border border-slate-800/80 flex flex-col shadow-2xl relative rounded-2xl md:rounded-3xl overflow-hidden"
+                  className="w-full max-w-5xl h-[92vh] sm:h-[88vh] max-h-212.5 bg-slate-900 border border-slate-800/80 flex flex-col shadow-2xl relative rounded-2xl md:rounded-3xl overflow-hidden"
                 >
                   {/* Close button top right */}
                   <button
@@ -1247,10 +1460,12 @@ export default function App() {
                     <div className="p-4 sm:p-5 bg-slate-950 border-b border-slate-850 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <BookOpen className="w-5 h-5 text-indigo-400" />
-                        <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">QUEST WORKSPACE</span>
+                        <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">
+                          QUEST WORKSPACE
+                        </span>
                       </div>
                     </div>
-                    
+
                     <div className="flex-1 overflow-hidden">
                       <Lessons
                         zoneId={activeZoneId}
@@ -1281,7 +1496,7 @@ export default function App() {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.92, y: 15 }}
                 transition={{ type: "spring", damping: 25, stiffness: 140 }}
-                className="fixed bottom-22 sm:bottom-24 left-3 right-3 sm:left-auto sm:right-6 z-[110] w-auto sm:w-[400px] h-[520px] sm:h-[550px] max-h-[calc(100vh-120px)] bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col"
+                className="fixed bottom-22 sm:bottom-24 left-3 right-3 sm:left-auto sm:right-6 z-110 w-auto sm:w-100 h-130 sm:h-137.5 max-h-[calc(100vh-120px)] bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col"
               >
                 <AIAdvisor
                   currentZone={activeZoneId}
@@ -1297,10 +1512,10 @@ export default function App() {
           {/* Global Floating Satoshi AI "Rooming" Bubble Button */}
           <button
             onClick={() => setIsTutorOpen(!isTutorOpen)}
-            className={`fixed bottom-6 right-6 z-[110] p-4 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 active:scale-95 group border-2 ${
+            className={`fixed bottom-6 right-6 z-110 p-4 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 active:scale-95 group border-2 ${
               isTutorOpen
                 ? "bg-rose-600 border-rose-500 text-white hover:bg-rose-500 shadow-rose-600/20"
-                : "bg-gradient-to-tr from-amber-500 via-yellow-500 to-orange-500 border-amber-400 text-slate-950 hover:brightness-110 shadow-orange-500/25 hover:scale-105"
+                : "bg-linear-to-tr from-amber-500 via-yellow-500 to-orange-500 border-amber-400 text-slate-950 hover:brightness-110 shadow-orange-500/25 hover:scale-105"
             }`}
             title="Ask Satoshi AI Mentor"
             id="global-satoshi-bubble"
@@ -1314,7 +1529,7 @@ export default function App() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
                 </span>
-                
+
                 {/* Micro tooltip on hover */}
                 <div className="absolute right-14 bg-slate-900 text-slate-100 border border-slate-800 text-[10px] font-mono font-bold tracking-wide uppercase px-2.5 py-1.5 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap">
                   Ask Satoshi AI
@@ -1344,15 +1559,21 @@ export default function App() {
                 <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center mx-auto shadow-lg shadow-indigo-600/10">
                   <Compass className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-xl font-black tracking-tight text-white mt-4">Welcome to ChainQuest</h3>
+                <h3 className="text-xl font-black tracking-tight text-white mt-4">
+                  Welcome to ChainQuest
+                </h3>
                 <p className="text-xs text-slate-400">
-                  Embark on an immersive game journey to master cryptography, wallets, miners, smart contracts, and DeFi. Let's create your identity!
+                  Embark on an immersive game journey to master cryptography,
+                  wallets, miners, smart contracts, and DeFi. Let's create your
+                  identity!
                 </p>
               </div>
 
               <form onSubmit={handleCreateProfile} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-mono text-slate-500 mb-1.5 text-left uppercase tracking-wider">CHOOSE USERNAME</label>
+                  <label className="block text-[10px] font-mono text-slate-500 mb-1.5 text-left uppercase tracking-wider">
+                    CHOOSE USERNAME
+                  </label>
                   <input
                     type="text"
                     required
@@ -1365,7 +1586,9 @@ export default function App() {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-mono text-slate-500 mb-2 text-left uppercase tracking-wider">SELECT AVATAR CHARACTER</label>
+                  <label className="block text-[10px] font-mono text-slate-500 mb-2 text-left uppercase tracking-wider">
+                    SELECT AVATAR CHARACTER
+                  </label>
                   <div className="grid grid-cols-4 gap-2.5">
                     {AVATARS.map((avatar) => (
                       <button
@@ -1435,7 +1658,7 @@ export default function App() {
 
               <div className="space-y-6 relative z-10">
                 <div className="relative inline-block">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-400 to-indigo-600 flex items-center justify-center mx-auto shadow-xl shadow-indigo-500/20 animate-bounce">
+                  <div className="w-20 h-20 rounded-full bg-linear-to-tr from-amber-400 to-indigo-600 flex items-center justify-center mx-auto shadow-xl shadow-indigo-500/20 animate-bounce">
                     <Trophy className="w-10 h-10 text-white" />
                   </div>
                   {/* Outer sparkling circles */}
@@ -1445,7 +1668,7 @@ export default function App() {
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-2xl font-black tracking-tight text-white uppercase bg-gradient-to-r from-amber-200 via-indigo-200 to-cyan-200 bg-clip-text text-transparent">
+                  <h3 className="text-2xl font-black tracking-tight text-white uppercase bg-linear-to-r from-amber-200 via-indigo-200 to-cyan-200 bg-clip-text">
                     {celebration.title}
                   </h3>
                   <p className="text-xs text-slate-300 leading-relaxed px-2">
@@ -1454,13 +1677,17 @@ export default function App() {
                 </div>
 
                 {celebration.badgeName && (
-                  <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 max-w-[280px] mx-auto flex items-center gap-3">
+                  <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 max-w-70 mx-auto flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
                       <Award className="w-5 h-5" />
                     </div>
                     <div className="text-left font-mono">
-                      <p className="text-[9px] text-indigo-400 font-bold uppercase tracking-wider">Badge Unlocked</p>
-                      <p className="text-xs font-bold text-white">{celebration.badgeName}</p>
+                      <p className="text-[9px] text-indigo-400 font-bold uppercase tracking-wider">
+                        Badge Unlocked
+                      </p>
+                      <p className="text-xs font-bold text-white">
+                        {celebration.badgeName}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -1484,7 +1711,7 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-[200] animate-fade-in"
+            className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-200 animate-fade-in"
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 30 }}
@@ -1494,8 +1721,8 @@ export default function App() {
               className="bg-slate-900 border-2 border-red-500/50 rounded-3xl p-6 w-full max-w-md shadow-2xl relative overflow-hidden text-center"
             >
               {/* Glowing hazard line */}
-              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-red-500 via-yellow-500 to-red-500 animate-pulse" />
-              
+              <div className="absolute top-0 inset-x-0 h-1 bg-linear-to-r from-red-500 via-yellow-500 to-red-500 animate-pulse" />
+
               {/* Alert Icon */}
               <div className="mx-auto bg-red-500/10 border border-red-500/30 p-3.5 rounded-full w-14 h-14 flex items-center justify-center animate-bounce mb-4">
                 <ShieldAlert className="w-7 h-7 text-red-500" />
@@ -1504,14 +1731,21 @@ export default function App() {
               <h3 className="text-sm font-black tracking-wider text-slate-100 uppercase font-mono">
                 🚨 INCOMING DUEL CHALLENGE 🚨
               </h3>
-              
+
               {/* Competitor profile specs */}
               <div className="bg-slate-950 border border-slate-850 rounded-2xl p-4 my-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-4xl">{incomingChallenge.competitor.avatar}</span>
+                  <span className="text-4xl">
+                    {incomingChallenge.competitor.avatar}
+                  </span>
                   <div className="text-left">
-                    <p className="text-xs font-bold text-red-400">{incomingChallenge.competitor.username}</p>
-                    <p className="text-[10px] text-slate-500 font-mono">Level {incomingChallenge.competitor.level} • {incomingChallenge.competitor.title}</p>
+                    <p className="text-xs font-bold text-red-400">
+                      {incomingChallenge.competitor.username}
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-mono">
+                      Level {incomingChallenge.competitor.level} •{" "}
+                      {incomingChallenge.competitor.title}
+                    </p>
                   </div>
                 </div>
                 <div className="bg-slate-900 border border-slate-800 px-3 py-1 rounded-full text-right font-mono text-[10px] text-indigo-400">
@@ -1525,19 +1759,23 @@ export default function App() {
                   They've challenged you to a game of:
                 </p>
                 <span className="inline-block bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg text-xs font-black font-mono uppercase text-indigo-300 tracking-wider">
-                  {incomingChallenge.challengeType === "quiz" 
-                    ? "🛡️ Smart Contract Bug Hunt" 
+                  {incomingChallenge.challengeType === "quiz"
+                    ? "🛡️ Smart Contract Bug Hunt"
                     : "⚡ Cryptographic Hash Race"}
                 </span>
                 <p className="text-[10px] text-slate-500 leading-relaxed font-mono mt-2">
-                  Accepting lets you defend your rank and claim bonus XP stakes. Rejects are free, but do you want to back down?
+                  Accepting lets you defend your rank and claim bonus XP stakes.
+                  Rejects are free, but do you want to back down?
                 </p>
               </div>
 
               {/* Action Handles */}
               {(() => {
                 const todayStr = new Date().toISOString().split("T")[0];
-                const dailyCount = profile?.lastDuelDate === todayStr ? (profile?.dailyDuelsCount || 0) : 0;
+                const dailyCount =
+                  profile?.lastDuelDate === todayStr
+                    ? profile?.dailyDuelsCount || 0
+                    : 0;
                 const isLimitReached = dailyCount >= 3;
 
                 return (
@@ -1545,14 +1783,21 @@ export default function App() {
                     {isLimitReached && (
                       <div className="p-3 bg-red-500/10 border border-red-500/25 rounded-2xl text-[11px] font-mono text-red-300 leading-normal mb-3 text-center">
                         ⚠️ <strong>Daily Duel Limit Reached (3/3)</strong>
-                        <p className="mt-1 text-slate-400">You've reached your maximum of 3 duels for today! Rest up and come back tomorrow to defend your rank.</p>
+                        <p className="mt-1 text-slate-400">
+                          You've reached your maximum of 3 duels for today! Rest
+                          up and come back tomorrow to defend your rank.
+                        </p>
                       </div>
                     )}
 
                     <button
                       onClick={() => {
                         if (isLimitReached) {
-                          showToast("Daily limit reached! ⚔️", "error", "You have already completed 3 duels today. Come back tomorrow!");
+                          showToast(
+                            "Daily limit reached! ⚔️",
+                            "error",
+                            "You have already completed 3 duels today. Come back tomorrow!",
+                          );
                           return;
                         }
                         // Accept on backend
@@ -1561,62 +1806,76 @@ export default function App() {
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({
                             duelId: incomingChallenge.id,
-                            action: "accept"
-                          })
-                        }).catch(e => console.error("Error accepting:", e));
+                            action: "accept",
+                          }),
+                        }).catch((e) => console.error("Error accepting:", e));
 
                         setActiveDuel({
                           competitor: incomingChallenge.competitor,
-                          initialState: incomingChallenge.challengeType === "quiz" ? "playing_quiz" : "playing_race",
+                          initialState:
+                            incomingChallenge.challengeType === "quiz"
+                              ? "playing_quiz"
+                              : "playing_race",
                           incomingDuelType: incomingChallenge.challengeType,
                           duelId: incomingChallenge.id,
-                          challengerScore: incomingChallenge.challengerScore
+                          challengerScore: incomingChallenge.challengerScore,
                         });
                         setIncomingChallenge(null);
                         playSound("level_up");
                       }}
                       disabled={isLimitReached}
                       className={`w-full text-white font-black text-xs py-3.5 rounded-2xl transition-all shadow-lg active:scale-95 duration-100 cursor-pointer flex items-center justify-center gap-1.5 ${
-                        isLimitReached 
-                          ? "bg-slate-800 text-slate-500 border border-slate-700/50 cursor-not-allowed opacity-40 shadow-none" 
-                          : "bg-gradient-to-r from-red-600 to-indigo-600 hover:from-red-500 hover:to-indigo-500 shadow-indigo-500/10"
+                        isLimitReached
+                          ? "bg-slate-800 text-slate-500 border border-slate-700/50 cursor-not-allowed opacity-40 shadow-none"
+                          : "bg-linear-to-r from-red-600 to-indigo-600 hover:from-red-500 hover:to-indigo-500 shadow-indigo-500/10"
                       }`}
                     >
                       ⚔️ PLAY NOW
                     </button>
-                    
+
                     <button
                       onClick={() => {
                         if (!profile) return;
                         if (isLimitReached) {
-                          showToast("Daily limit reached! ⚔️", "error", "You have already completed 3 duels today. Come back tomorrow!");
+                          showToast(
+                            "Daily limit reached! ⚔️",
+                            "error",
+                            "You have already completed 3 duels today. Come back tomorrow!",
+                          );
                           return;
                         }
-                        
+
                         // Accept on backend
                         fetch("/api/duels/respond", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({
                             duelId: incomingChallenge.id,
-                            action: "accept"
-                          })
-                        }).catch(e => console.error("Error accepting:", e));
+                            action: "accept",
+                          }),
+                        }).catch((e) => console.error("Error accepting:", e));
 
                         const newDuel: ActiveDuelItem = {
                           id: incomingChallenge.id,
                           competitor: incomingChallenge.competitor,
                           challengeType: incomingChallenge.challengeType,
                           createdAt: new Date().toISOString(),
-                          challengerScore: incomingChallenge.challengerScore
+                          challengerScore: incomingChallenge.challengerScore,
                         };
                         saveProfile({
                           ...profile,
-                          activeDuels: [...(profile.activeDuels || []), newDuel],
+                          activeDuels: [
+                            ...(profile.activeDuels || []),
+                            newDuel,
+                          ],
                         });
                         setIncomingChallenge(null);
                         playSound("mission_complete");
-                        showToast("Duel saved to Leaderboard! ⚔️", "success", "You can resolve this duel later from the Leaderboard.");
+                        showToast(
+                          "Duel saved to Leaderboard! ⚔️",
+                          "success",
+                          "You can resolve this duel later from the Leaderboard.",
+                        );
                       }}
                       disabled={isLimitReached}
                       className={`w-full font-extrabold text-xs py-3.5 rounded-2xl border transition-all cursor-pointer ${
@@ -1627,7 +1886,7 @@ export default function App() {
                     >
                       📥 ACCEPT & PLAY LATER
                     </button>
-                    
+
                     <button
                       onClick={() => {
                         if (incomingChallenge) {
@@ -1637,13 +1896,16 @@ export default function App() {
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
                               duelId: incomingChallenge.id,
-                              action: "decline"
-                            })
-                          }).catch(e => console.error("Error declining:", e));
+                              action: "decline",
+                            }),
+                          }).catch((e) => console.error("Error declining:", e));
                         }
                         setIncomingChallenge(null);
                         playSound("click");
-                        showToast("You quietly declined the challenge.", "info");
+                        showToast(
+                          "You quietly declined the challenge.",
+                          "info",
+                        );
                       }}
                       className="w-full border border-slate-800/80 hover:bg-slate-800/40 text-slate-400 hover:text-slate-300 font-bold text-xs py-3 rounded-2xl transition-all cursor-pointer"
                     >
@@ -1655,10 +1917,17 @@ export default function App() {
                         setIncomingChallenge(null);
                         playSound("click");
                         try {
-                          localStorage.setItem("chainquest_challenges_disabled", "true");
+                          localStorage.setItem(
+                            "chainquest_challenges_disabled",
+                            "true",
+                          );
                         } catch {}
                         setChallengesDisabled(true);
-                        showToast("Alerts muted! 🔕", "info", "You can re-enable random duels anytime in My Profile settings.");
+                        showToast(
+                          "Alerts muted! 🔕",
+                          "info",
+                          "You can re-enable random duels anytime in My Profile settings.",
+                        );
                       }}
                       className="w-full text-[10px] text-slate-500 hover:text-indigo-400 font-mono tracking-wider transition-all pt-1.5 cursor-pointer hover:underline"
                     >
