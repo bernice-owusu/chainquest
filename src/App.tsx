@@ -1616,7 +1616,7 @@ export default function App() {
                 </button>
               </form>
 
-              <div className="border-t border-slate-850/60 pt-4 text-center">
+              {/* <div className="border-t border-slate-850/60 pt-4 text-center">
                 <p className="text-xs text-slate-400">
                   Already have a registered cloud account?
                 </p>
@@ -1630,7 +1630,7 @@ export default function App() {
                 >
                   Sign in to your Cloud Profile here
                 </button>
-              </div>
+              </div> */}
             </motion.div>
           </motion.div>
         )}
